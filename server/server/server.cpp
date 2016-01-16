@@ -23,6 +23,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
+
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: Place code here.
