@@ -24,3 +24,7 @@
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+
+#include <Commctrl.h>
+
+#include <sstream>
