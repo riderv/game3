@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "server.h"
-
+import game;
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -22,6 +22,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_ LPWSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
+
+	f(5);
+	g(0.0, 1);
+
     UNREFERENCED_PARAMETER(hPrevInstance);
 
     UNREFERENCED_PARAMETER(lpCmdLine);
