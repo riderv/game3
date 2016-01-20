@@ -5,21 +5,12 @@ struct IGameState
 	virtual void PoolEvent(sf::Event &) {}
 	virtual void Simulate() {}
 	virtual void Draw() = 0;
+	virtual void OnResize() = 0;
 };
 
-
-struct TMapEditorState : IGameState
-{
-	void TMapEditorState::PoolEvent(sf::Event &) override;
-	void TMapEditorState::Simulate() override;
-	void TMapEditorState::Draw() override;
-
-	void TMapEditorState::GenerateMap();
-protected:
-
-};
-
-struct TMainMenuState; //: IGameState
+struct TMapEditorState; //: IGameState
+struct TMainMenuState;	//: IGameState
+struct TMapParams;
 
 struct TGameState : IGameState
 {
@@ -30,9 +21,10 @@ struct TGameState : IGameState
 	void TGameState::PoolEvent(sf::Event &) override;
 	void TGameState::Simulate() override	{ mCurrentState->Simulate(); }
 	void TGameState::Draw() override		{ mCurrentState->Draw(); }
+	void TGameState::OnResize() override	{ mCurrentState->OnResize(); }
 	bool TGameState::IsClosed() const		{ return mClosed; }
 
-	void TGameState::GotoNewMapEditor();
+	void TGameState::GotoMapEditor(const TMapParams &);
 //protected:
 	TMainMenuState	*mMainMenuState = nullptr;
 	TMapEditorState *mMapEditorState = nullptr;

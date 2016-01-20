@@ -5,6 +5,7 @@
 #include "single.h"
 
 #include "main_window.h"
+#include "tile_map.h"
 #include "game_state.h"
 
 void MainLoop();
@@ -24,3 +25,5 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCm
 
 #include "main_window_impl.h"
 #include "game_state_impl.h"
+#include "map_editor_impl.h"
+#include "tile_map_impl.h"

@@ -28,3 +28,7 @@
 #include <Commctrl.h>
 
 #include <sstream>
+
+#include <unordered_map>
+
+#include <inttypes.h>

@@ -13,7 +13,10 @@ void MainLoop()
 	sf::RenderWindow win(sf::VideoMode(800, 600, 32), "SFML Graphics");
 	gpWin = &win;
 	gpGameState = new (g_GameStateSpace)TGameState();
-
+	sf::View v = win.getView();
+	v.zoom(0.5f);
+	v.setCenter( float(win.getSize().x/4), float(win.getSize().y/4));
+	win.setView(v);
 	// Start game loop
 	while (win.isOpen())
 	{
@@ -25,6 +28,9 @@ void MainLoop()
 			gpGameState->PoolEvent(Event);
 			if(gpGameState->IsClosed() )
 				win.close();
+
+			if (Event.type == sf::Event::Resized)
+				gpGameState->OnResize();
 		}
 		gpGameState->Simulate();
 		// Clear the screen (fill it with black color)
