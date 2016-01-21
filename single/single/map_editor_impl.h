@@ -7,41 +7,23 @@ TMapEditorState::TMapEditorState()
 {
 	if (!mTileMap.mTileTexture.loadFromFile("../../res/simple_tile_set.png"))
 		throw std::exception("simple_tile_set.png not found");
+
+	UpdateView();	
+
 }
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Create(MapParams);
 	mTileSprite.setTexture(mTileMap.mTileTexture);
-
-
+	
+	UpdateView();
+	
 }
 
 void TMapEditorState::PoolEvent(sf::Event & Event)
-{/*
-	switch (Event.type)
-	{
-	case sf::Event::KeyPressed:
-		if (Event.key.code == sf::Keyboard::Right)
-		{
-			mViewOffset.x++;
-		}
-		if (Event.key.code == sf::Keyboard::Left)
-		{
-			mViewOffset.x--;
-		}
-		if (Event.key.code == sf::Keyboard::Up)
-		{
-			mViewOffset.y--;
-		}
-		if (Event.key.code == sf::Keyboard::Down)
-		{
-			mViewOffset.y++;
-		}
-		break;
-	default:
-		break;
-	}*/
+{
+
 }
 
 void TMapEditorState::Simulate()
@@ -52,59 +34,56 @@ void TMapEditorState::Simulate()
 	{
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 		{
-			mViewOffset.x--;
+			mViewTileOffset.x--;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 		{
-			mViewOffset.y--;
+			mViewTileOffset.y--;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 		{
-			mViewOffset.x++;
+			mViewTileOffset.x++;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 		{
-			mViewOffset.y++;
+			mViewTileOffset.y++;
 		}
 		cl.restart();
 	}
 }
 void TMapEditorState::Draw()
 {
-	//gpWin->setView(mView);
+	Win.setView(mView);
 
 	// размеры view в тайлах
-	int txx = int(gpWin->getView().getSize().x / 18);
-	int tyy = int(gpWin->getView().getSize().y / 18);
+	int txx = mViewTileSize.x;
+	int tyy = mViewTileSize.y;
 
-		
+	// перебор тайлов влезающих в экран	
 	for (int tx = 0; tx < txx; ++tx)
 	{
 		for (int ty = 0; ty < tyy; ++ty)
 		{
-			TileType t = mTileMap.TypeAt(uint16_t(tx), uint16_t(ty));
+			int xof = tx - mViewTileOffset.x;
+			int yof = ty - mViewTileOffset.y;
+			TileType t = mTileMap.TypeAt(uint16_t(xof), uint16_t(yof));
 			if (t == TileType::Unknown)
 				continue;
-			sf::IntRect r( int(t)*20+1, 1, 18, 18);
+			sf::IntRect r( int(t)*TilePxSize, 0, TilePxSize, TilePxSize );
 			mTileSprite.setTextureRect(r);
-			sf::Vector2i pos_in_tiles(tx - mViewOffset.x, ty - mViewOffset.y);
-			sf::Vector2f pos_in_pixels(pos_in_tiles.x*18.0f, pos_in_tiles.y*18.0f);
+			sf::Vector2f pos_in_pixels(xof * TilePxSize, yof * TilePxSize);
 			mTileSprite.setPosition(pos_in_pixels);
-			gpWin->draw(mTileSprite);
+			Win.draw(mTileSprite);
 		}
 	}
 }
-
-void TMapEditorState::OnResize()
-{
-	UpdateView();
-}
-
 void TMapEditorState::UpdateView()
 {
-	auto sz = gpWin->getSize();
-	mView.setSize(float(sz.y), float(sz.y));
-	mMenuView.setSize( float(sz.x - sz.y), float(sz.y));
-
-
+	sf::Vector2u ws = Win.getSize();
+	mViewTileSize.x = ws.x / TilePxSize;
+	mViewTileSize.y = ws.y / TilePxSize;
+	mView.reset( sf::FloatRect(0.0f, 0.0f, float(ws.x)/2, float(ws.y)/2) );
+	
+	
 }
+void TMapEditorState::OnResize() { UpdateView(); }

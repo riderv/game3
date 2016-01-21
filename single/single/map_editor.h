@@ -4,9 +4,6 @@
 
 struct TMapEditorState : IGameState
 {
-	TGameState *mState = nullptr;
-	TTileMap mTileMap;
-
 		 TMapEditorState::TMapEditorState();
 	void TMapEditorState::PoolEvent(sf::Event &) override;
 	void TMapEditorState::Simulate() override;
@@ -16,10 +13,13 @@ struct TMapEditorState : IGameState
 	void TMapEditorState::CreateMap(const TMapParams& MapParams);
 	void TMapEditorState::UpdateView();
 //protected:
-	sf::View mView;
-	sf::Vector2i mViewOffset = { 0, 0 };
 
-	sf::View mMenuView;
+	TGameState *mState = nullptr;
+	TTileMap mTileMap;
+
+	sf::View mView;
+	sf::Vector2i mViewTileOffset = { 0, 0 };
+	sf::Vector2i mViewTileSize = { 0, 0 };
 	sf::Sprite mTileSprite;
-	
+
 };

@@ -38,5 +38,17 @@ void TGameState::GotoMapEditor(const TMapParams &MapParams)
 	mCurrentState = mMapEditorState;
 	mMapEditorState->UpdateView();
 	mMapEditorState->CreateMap(MapParams);
+	union
+	{
+		struct {
+			uint16_t x, y;
+		};
+		uint32_t val;
+	} u;
+	for (int i = 0; i < 10; ++i) {
+		u.x = rand() % MapParams.h;
+		u.y = rand() % MapParams.w;
+		mMapEditorState->mTileMap.mMap[u.val] = TileType::Water;
+	}
 }
 

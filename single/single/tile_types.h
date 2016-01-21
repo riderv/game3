@@ -1,5 +1,7 @@
 #pragma once
 
+static const int TilePxSize = 20;
+
 enum class  TileType : int 
 { Unknown,   Graund,   Water,  Count };
 

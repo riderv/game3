@@ -3,40 +3,43 @@
 #include "stdafx.h"
 #include "game_state.h"
 
-extern char g_GameStateSpace[sizeof(TGameState)];
-extern TGameState * gpGameState;
-extern sf::RenderWindow *gpWin;
+extern char g_GameStateMemorySpace[sizeof(TGameState)];
+extern TGameState & GameState;
+
+extern char g_WindowMemotySpace[sizeof(sf::RenderWindow)];
+extern sf::RenderWindow & Win;
 
 void MainLoop()
 {
+	new(g_WindowMemotySpace) sf::RenderWindow(sf::VideoMode(800, 600, 32), "Brodilka");
+	new (g_GameStateMemorySpace) TGameState();
 
-	sf::RenderWindow win(sf::VideoMode(800, 600, 32), "SFML Graphics");
-	gpWin = &win;
-	gpGameState = new (g_GameStateSpace)TGameState();
-	sf::View v = win.getView();
-	v.zoom(0.5f);
-	v.setCenter( float(win.getSize().x/4), float(win.getSize().y/4));
-	win.setView(v);
+	//sf::View v = win.getView();
+	//v.zoom(0.5f);
+	//v.setCenter( float(win.getSize().x/4), float(win.getSize().y/4));
+	//win.setView(v);
 	// Start game loop
-	while (win.isOpen())
+	while (Win.isOpen())
 	{
 		// Process events
 		sf::Event Event;
-		while (win.pollEvent(Event))
+		while (Win.pollEvent(Event))
 		{
 			// Close window : exit
-			gpGameState->PoolEvent(Event);
-			if(gpGameState->IsClosed() )
-				win.close();
+			GameState.PoolEvent(Event);
+			if(GameState.IsClosed() )
+				Win.close();
 
 			if (Event.type == sf::Event::Resized)
-				gpGameState->OnResize();
+			{
+				GameState.OnResize();
+			}
 		}
-		gpGameState->Simulate();
+		GameState.Simulate();
 		// Clear the screen (fill it with black color)
-		win.clear();
-		gpGameState->Draw();
+		Win.clear();
+		GameState.Draw();
 		// Display window contents on screen
-		win.display();
+		Win.display();
 	}	
 }
