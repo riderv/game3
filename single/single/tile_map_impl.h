@@ -20,7 +20,7 @@ TileType TTileMap::TypeAt(uint16_t x, uint16_t y) const
 	return i->second;
 }
 
-void TTileMap::Create(const TMapParams& MapParams)
+void TTileMap::Reset(const TMapParams& MapParams)
 {
 	mParam = MapParams;
 	mMap.clear();
@@ -71,6 +71,7 @@ void TTileMap::Save(SQLite::TDB& db)
 void TTileMap::Load(SQLite::TDB& db)
 {
 	auto Transaction = db.BeginTransaction();
+	TMapParams p;
 	bool IsNull; // todo: null check
 	// read map from database
 	{
@@ -79,7 +80,6 @@ void TTileMap::Load(SQLite::TDB& db)
 		{
 			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return zero.");
 		}
-		TMapParams p;
 		Stmt.Get(0, p.w, IsNull); // WTF? 0-based unlike param-binding
 		assert(IsNull == false);
 		Stmt.Get(1, p.h, IsNull);
@@ -92,13 +92,12 @@ void TTileMap::Load(SQLite::TDB& db)
 		{
 			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return many.");
 		}
-		mParam = p;
 	}
 	
-	// read tile_type,x,y
+	// read (tile_type,x,y) to new map
+	Index2TileType NewMap;
 	{
 		auto Stmt = db.Prepare("select x,y,TileType from map_tiles");
-		mMap.clear();
 		ui16 Type;
 		int ret;
 		while (SQLITE_ROW == (ret = Stmt.Step()) )
@@ -113,11 +112,14 @@ void TTileMap::Load(SQLite::TDB& db)
 			Stmt.Get(2, Type, IsNull);
 			assert(IsNull == false);
 
-			mMap[co] = TileType(Type);
+			NewMap[co] = TileType(Type);
 			
 		}
 		assert(ret == SQLITE_DONE);
 	}
+
+	mParam = p;
+	mMap.swap(NewMap);
 
 	Transaction.Commit();
 }

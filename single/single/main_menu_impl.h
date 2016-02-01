@@ -86,7 +86,7 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case IDCANCEL:
 		case IDOK:		
 			PostQuitMessage(0);
-			break;
+			return TRUE;
 		}
 		break;
 
@@ -145,11 +145,11 @@ void TMainMenuState::OnGenMap(void *This)
 	Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
 	assert(ok == TRUE);
 	assert(Param.w > 0);
-	assert(Param.w < 65535);
+	assert(Param.w <= Max<ui16>());
 	Param.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
 	assert(ok == TRUE);
 	assert(Param.h > 0);
-	assert(Param.h < 65535);
+	assert(Param.h <= Max<ui16>());
 	Param.PrevalentTileType = TileTypeFromInt( (int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0) );
 
 	DestroyWindow(hDlg);

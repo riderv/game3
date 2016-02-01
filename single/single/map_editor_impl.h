@@ -39,7 +39,7 @@ TMapEditorState::TMapEditorState()
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
-	mTileMap.Create(MapParams);
+	mTileMap.Reset(MapParams);
 	mTileSprite.setTexture(mTileMap.mTileTexture);
 	
 	UpdateView();
@@ -143,4 +143,10 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 	SQLite::TDB db;
 	db.Open(FileName);
 	mTileMap.Load(db);
+	mTileMap.mParam.FileName = FileName;
+	
+	mTileSprite.setTexture(mTileMap.mTileTexture);
+
+	UpdateView();
+
 }

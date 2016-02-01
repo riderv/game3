@@ -61,4 +61,5 @@ void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName)
 	}
 	mCurrentState = mMapEditorState;
 	mMapEditorState->LoadMap(FileName);
+	mMapEditorState->UpdateView();
 }

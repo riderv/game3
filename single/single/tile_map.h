@@ -31,7 +31,7 @@ struct TTileMap
 {
 	
 	TileType TTileMap::TypeAt(uint16_t x, uint16_t y) const;
-	void	 TTileMap::Create(const TMapParams& MapParams);
+	void	 TTileMap::Reset(const TMapParams& MapParams);
 
 	void	 TTileMap::Save(SQLite::TDB& db);
 	void	 TTileMap::Load(SQLite::TDB& db);

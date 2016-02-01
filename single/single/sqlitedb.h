@@ -89,9 +89,12 @@ namespace SQLite
 		struct TTransaction
 		{
 			TDB &db;
+			bool isActive = true;
 			TTransaction::TTransaction(SQLite::TDB& db) : db(db) {}
 			TTransaction::~TTransaction()
 			{
+				if (!isActive)
+					return;
 				char* erm = nullptr;
 				if (SQLITE_OK != sqlite3_exec(db.db, "rollback", nullptr, nullptr, &erm) )
 				{
@@ -104,6 +107,9 @@ namespace SQLite
 			}
 			void TTransaction::Commit()
 			{
+				if (!isActive)
+					db.Raise("TTransaction::Commit() failed. isActive==false");
+
 				char *erm = 0;
 				int res = sqlite3_exec(db.db, "commit", 0, 0, &erm);
 				if (res != SQLITE_OK) {
@@ -114,6 +120,7 @@ namespace SQLite
 					}
 					db.Raise(s);
 				}
+				isActive = false;
 			}
 		};
 
