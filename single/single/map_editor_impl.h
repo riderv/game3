@@ -1,14 +1,39 @@
 #pragma once
 
-
+#include "stdafx.h"
+#include "main_menu.h"
+#include "game_state.h"
+#include "main_window.h"
 #include "map_editor.h"
 
 TMapEditorState::TMapEditorState()
 {
-	if (!mTileMap.mTileTexture.loadFromFile("../../res/simple_tile_set.png"))
+	//todo загрузку относительно ехе сделать
+	if (!mTileMap.mTileTexture.loadFromFile("d:/_pro/game3/res/simple_tile_set.png"))
 		throw std::exception("simple_tile_set.png not found");
 
 	UpdateView();	
+
+	// init menu
+	{
+		float x(0.0f), y(0.0f);
+		mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
+
+		mMenu += TMenuItem()
+			.Text("F5) Save")
+			.Font(GameState.mMainMenuState->mFont)
+			.Pos(x, y)
+			.CharSize(20)
+			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
+		y += 30;
+
+		mMenu += TMenuItem()
+			.Text("F6) Load")
+			.Font(GameState.mMainMenuState->mFont)
+			.Pos(x, y)
+			.CharSize(20)
+			.OnKey(sf::Keyboard::F6, &TMapEditorState::DoOnLoad);
+	}
 
 }
 
@@ -23,67 +48,99 @@ void TMapEditorState::CreateMap(const TMapParams& MapParams)
 
 void TMapEditorState::PoolEvent(sf::Event & Event)
 {
-
+	switch (Event.type)
+	{
+	case sf::Event::EventType::KeyReleased:
+		mMenu.ProcessKey(Event.key.code);
+		break;
+	}
 }
 
 void TMapEditorState::Simulate()
 {
-	static sf::Clock cl;
-	sf::Time time = cl.getElapsedTime();
+	sf::Time time = mKeyDelayClock.getElapsedTime();
 	if (time.asMilliseconds() > 50)
 	{
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 		{
-			mViewTileOffset.x--;
+			mViewOffsetInTiles.x++;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 		{
-			mViewTileOffset.y--;
+			mViewOffsetInTiles.y++;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 		{
-			mViewTileOffset.x++;
+			mViewOffsetInTiles.x--;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 		{
-			mViewTileOffset.y++;
+			mViewOffsetInTiles.y--;
 		}
-		cl.restart();
+		mKeyDelayClock.restart();
 	}
 }
 void TMapEditorState::Draw()
 {
 	Win.setView(mView);
 
-	// размеры view в тайлах
-	int txx = mViewTileSize.x;
-	int tyy = mViewTileSize.y;
-
 	// перебор тайлов влезающих в экран	
-	for (int tx = 0; tx < txx; ++tx)
+	for (int tx = 0; tx < mViewSizeInTiles.x; ++tx)
 	{
-		for (int ty = 0; ty < tyy; ++ty)
+		for (int ty = 0; ty < mViewSizeInTiles.y; ++ty)
 		{
-			int xof = tx - mViewTileOffset.x;
-			int yof = ty - mViewTileOffset.y;
-			TileType t = mTileMap.TypeAt(uint16_t(xof), uint16_t(yof));
-			if (t == TileType::Unknown)
+			int xof = tx + mViewOffsetInTiles.x;
+			int yof = ty + mViewOffsetInTiles.y;
+			TileType Type = mTileMap.TypeAt(uint16_t(xof), uint16_t(yof));
+			if (Type == TileType::Unknown)
 				continue;
-			sf::IntRect r( int(t)*TilePxSize, 0, TilePxSize, TilePxSize );
+			sf::IntRect r( int(Type)*TilePxSize, 0, TilePxSize, TilePxSize );
 			mTileSprite.setTextureRect(r);
-			sf::Vector2f pos_in_pixels(xof * TilePxSize, yof * TilePxSize);
+			sf::Vector2f pos_in_pixels(float(xof * TilePxSize), float(yof * TilePxSize));
 			mTileSprite.setPosition(pos_in_pixels);
 			Win.draw(mTileSprite);
 		}
 	}
+
+	//mMenu.Draw(Win);
 }
 void TMapEditorState::UpdateView()
 {
 	sf::Vector2u ws = Win.getSize();
-	mViewTileSize.x = ws.x / TilePxSize;
-	mViewTileSize.y = ws.y / TilePxSize;
+	
+	// mView должен быть пропорционален экрану
+	// но в два раза крупнее (впикселах)
 	mView.reset( sf::FloatRect(0.0f, 0.0f, float(ws.x)/2, float(ws.y)/2) );
 	
+	// записать сколько тайлов влезает во View и отрисовывать только влезающие
+	mViewSizeInTiles.x = int(mView.getSize().x / TilePxSize);
+	mViewSizeInTiles.y = int(mView.getSize().y / TilePxSize);
 	
 }
 void TMapEditorState::OnResize() { UpdateView(); }
+
+void TMapEditorState::DoOnSave(void *This)
+{
+	TMapEditorState& self = *((TMapEditorState*)This);
+//	self.mTileMap.Save(self.mTileMap.mParam.FileName);
+	SQLite::TDB db;
+	db.Open(self.mTileMap.mParam.FileName.c_str() );
+	self.mTileMap.Save(db);
+
+}
+
+void TMapEditorState::DoOnLoad(void *This)
+{
+	TMapEditorState& self = *((TMapEditorState*)This);
+//	self.mTileMap.Load(self.mTileMap.mParam.FileName);
+	SQLite::TDB db;
+	db.Open(self.mTileMap.mParam.FileName.c_str());
+	self.mTileMap.Load(db);
+}
+
+void TMapEditorState::LoadMap(const wchar_t* FileName)
+{
+	SQLite::TDB db;
+	db.Open(FileName);
+	mTileMap.Load(db);
+}

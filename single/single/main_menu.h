@@ -30,7 +30,7 @@ struct TMenu
 	std::vector<TMenuItem> items;
 
 	inline void TMenu::ProcessKey(sf::Keyboard::Key Key);
-	inline void TMenu::Draw();
+	inline void TMenu::Draw(sf::RenderTarget& Target);
 };
 
 

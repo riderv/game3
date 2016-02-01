@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tile_types.h"
-
+#include "sqlitedb.h"
 
 struct TMapParams
 {
@@ -20,16 +20,25 @@ union TCoord2Int
 		uint16_t x;
 		uint16_t y;
 	};
+	bool operator==(const TCoord2Int& R)
+	{
+		return ui == R.ui;
+	}
+	operator uint32_t() const { return ui; }
 };
 
 struct TTileMap
 {
+	
 	TileType TTileMap::TypeAt(uint16_t x, uint16_t y) const;
 	void	 TTileMap::Create(const TMapParams& MapParams);
 
+	void	 TTileMap::Save(SQLite::TDB& db);
+	void	 TTileMap::Load(SQLite::TDB& db);
+
 	TMapParams mParam;
 
-	typedef std::unordered_map< uint32_t, TileType > Index2TileType;
+	typedef std::unordered_map< TCoord2Int, TileType, std::hash<uint32_t> > Index2TileType;
 	Index2TileType mMap;
 
 	sf::Texture mTileTexture;

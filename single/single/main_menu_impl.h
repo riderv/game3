@@ -1,6 +1,14 @@
 #pragma once
+
+// все эти инклуды лишь чтобы удовлетворить подсказчик кода
+#include "stdafx.h"
+#include "TLog.h"
 #include "tile_types.h"
 #include "main_menu.h"
+#include "game_state.h"
+#include "main_window.h"
+#include "resource.h"
+#include "map_editor.h"
 //----------------------------
 //			TMenuItem
 //----------------------------
@@ -17,10 +25,10 @@ inline void TMenu::ProcessKey(sf::Keyboard::Key Key)
 		mi.ProcessKey(Key, object_handler);
 }
 
-inline void TMenu::Draw()
+inline void TMenu::Draw(sf::RenderTarget& Target)
 {
 	for (auto mi : items)
-		Win.draw(mi.text);
+		Target.draw(mi.text);
 }
 //----------------------------
 //			TMainMenuState
@@ -32,7 +40,7 @@ TMainMenuState::TMainMenuState()
 	assert(mFont.loadFromFile("c:/windows/fonts/consola.ttf"));
 
 	float x(100.0f), y(100.0f);
-	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and all IDE performance...
+	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
 	
 	mMenu += TMenuItem().Text(L"Ѕродилка")
 		.Font(mFont).Pos(x, y).CharSize(30);
@@ -56,7 +64,7 @@ void TMainMenuState::PoolEvent(sf::Event & Event)
 
 void TMainMenuState::Draw()
 {
-	mMenu.Draw();
+	mMenu.Draw(Win);
 }
 
 void TMainMenuState::OnResize()
@@ -95,62 +103,82 @@ void TMainMenuState::OnGenMap(void *This)
 	TMainMenuState &self = *((TMainMenuState*)This);
 	
 	// —просим у юзера каким размеров карту ему хочетс€.
-	//HWND hDlg;
-	//MSG msg;
-	//BOOL ret;
-	//LRESULT lres;
-	//// ƒиалог -- IDD_NEW_MAP_DIALOG //
-	//hDlg = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
-	//assert(NULL != hDlg);
-	//
-	//HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
-	//assert(NULL != hWndComboBox);
-
-	//for (int i = 0; i < int(TileType::Count); ++i )
-	//{
-	//	const char* TileTypeName = TileType_Names[i];
-	//	LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileTypeName);
-	//	assert(res == i);
-	//	assert(res != CB_ERR);
-	//	assert(res != CB_ERRSPACE);
-	//}
-	//lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
-
-	//ShowWindow(hDlg, SW_SHOW);
-
-	////UpdateWindow(hDlg);
-
-	//while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
-	//{
-	//	if (ret == -1) {
-	//		__debugbreak();
-	//		break;
-	//	}
-	//	if (!IsDialogMessage(hDlg, &msg)) {
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-	//}
-	//// —читаем из диалога пользовательский ввод.
-	TMapParams DialogField;
-	//assert( 0 != GetDlgItemText(hDlg, IDC_EDIT_FILENAME, const_cast<LPWSTR>(DialogField.FileName.c_str()), static_cast<int>(DialogField.FileName.size())) );
-	//BOOL ok;
-	//DialogField.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
-	//assert(ok == TRUE);
-	//assert(DialogField.w > 0);
-	//assert(DialogField.w < 65535);
-	//DialogField.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
-	//assert(ok == TRUE);
-	//assert(DialogField.h > 0);
-	//assert(DialogField.h < 65535);
-	//DialogField.PrevalentTileType = TileTypeFromInt( (int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0) );
-
-	//DestroyWindow(hDlg);
-	DialogField.h = 16;
-	DialogField.w = 16;
-	DialogField.PrevalentTileType = TileType::Graund;
+	HWND hDlg;
+	MSG msg;
+	BOOL ret;
+	LRESULT lres;
+	// ƒиалог -- IDD_NEW_MAP_DIALOG //
+	hDlg = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
+	assert(NULL != hDlg);
 	
-	self.mState->GotoMapEditor(DialogField);
+	HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
+	assert(NULL != hWndComboBox);
+
+	for (int i = 0; i < int(TileType::Count); ++i )
+	{
+		const char* TileTypeName = TileType_Names[i];
+		LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileTypeName);
+		assert(res == i);
+		assert(res != CB_ERR);
+		assert(res != CB_ERRSPACE);
+	}
+	lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
+	ShowWindow(hDlg, SW_SHOW);
+
+	//UpdateWindow(hDlg);
+
+	while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
+	{
+		if (ret == -1) {
+			__debugbreak();
+			break;
+		}
+		if (!IsDialogMessage(hDlg, &msg)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+	// —читаем из диалога пользовательский ввод.
+	TMapParams Param;
+	assert( 0 != GetDlgItemText(hDlg, IDC_EDIT_FILENAME, const_cast<LPWSTR>(Param.FileName.c_str()), static_cast<int>(Param.FileName.size())) );
+	BOOL ok;
+	Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
+	assert(ok == TRUE);
+	assert(Param.w > 0);
+	assert(Param.w < 65535);
+	Param.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
+	assert(ok == TRUE);
+	assert(Param.h > 0);
+	assert(Param.h < 65535);
+	Param.PrevalentTileType = TileTypeFromInt( (int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0) );
+
+	DestroyWindow(hDlg);
+
+
+	//Param.h = 16;
+	//Param.w = 16;
+	//Param.PrevalentTileType = TileType::Graund;
+	
+	self.mState->GotoMapEditor_CreateMap(Param);
+	
+	for (int x = 0; x < Param.w; ++x)
+	{
+		TCoord2Int c;
+		c.x = x;
+		c.y = 0;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		c.y = Param.h - 1;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+	}
+	for (int y = 1; y < (Param.h - 1); ++y)
+	{
+		TCoord2Int c;
+		c.y = y;
+		c.x = 0;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		c.x = Param.w - 1;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+	}
 }
 
 
@@ -158,4 +186,29 @@ void TMainMenuState::OnGenMap(void *This)
 void TMainMenuState::OnLoadMap(void *This)
 {
 	TMainMenuState &self = *((TMainMenuState*)This);
+	
+	static const int FileName_BufSize = 4 * 1024;
+	wchar_t FileName[FileName_BufSize] = { 0 };
+	wchar_t FilePath[FileName_BufSize] = { 0 };
+	int PathLen = GetModuleFileNameW(gHinstance, FilePath, FileName_BufSize);
+	if (int er = GetLastError())
+	{
+		ShowLastErr(er);
+		return;
+	}
+	// Ёх, где же ты удобна€ VCL GetFilePath
+	*wcsrchr(FilePath, L'\\') = L'\0';
+	
+	OPENFILENAMEW ofn = { 0 };
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = FileName;
+	ofn.nMaxFile = FileName_BufSize;
+	ofn.lpstrInitialDir = FilePath;
+
+	if (GetOpenFileNameW(&ofn))
+	{
+		MessageBoxW(NULL, ofn.lpstrFile, L"File Name", MB_OK);
+		GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
+	}
+
 }

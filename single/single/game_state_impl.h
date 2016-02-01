@@ -28,7 +28,7 @@ void TGameState::PoolEvent(sf::Event &Event)
 		mCurrentState->PoolEvent(Event);
 }
 
-void TGameState::GotoMapEditor(const TMapParams &MapParams)
+void TGameState::GotoMapEditor_CreateMap(const TMapParams &MapParams)
 {
 	if (!mMapEditorState)
 	{
@@ -36,19 +36,29 @@ void TGameState::GotoMapEditor(const TMapParams &MapParams)
 		mMapEditorState->mState = this;
 	}
 	mCurrentState = mMapEditorState;
-	mMapEditorState->UpdateView();
 	mMapEditorState->CreateMap(MapParams);
-	union
-	{
-		struct {
-			uint16_t x, y;
-		};
-		uint32_t val;
-	} u;
-	for (int i = 0; i < 10; ++i) {
-		u.x = rand() % MapParams.h;
-		u.y = rand() % MapParams.w;
-		mMapEditorState->mTileMap.mMap[u.val] = TileType::Water;
-	}
+	mMapEditorState->UpdateView();
+	//union
+	//{
+	//	struct {
+	//		uint16_t x, y;
+	//	};
+	//	uint32_t val;
+	//} u;
+	//for (int i = 0; i < 10; ++i) {
+	//	u.x = rand() % MapParams.h;
+	//	u.y = rand() % MapParams.w;
+	//	mMapEditorState->mTileMap.mMap[u.val] = TileType::Water;
+	//}
 }
 
+void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName)
+{
+	if (!mMapEditorState)
+	{
+		mMapEditorState = new TMapEditorState();
+		mMapEditorState->mState = this;
+	}
+	mCurrentState = mMapEditorState;
+	mMapEditorState->LoadMap(FileName);
+}

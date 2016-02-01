@@ -1,8 +1,8 @@
 #pragma once
 
 static const int TilePxSize = 20;
-
-enum class  TileType : int 
+// todo: заменить все int на int32
+enum TileType : ui16
 { Unknown,   Graund,   Water,  Count };
 
 static const char *TileType_Names[] = 

@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "single.h"
 
+#include "TLog.h"
 #include "main_window.h"
 #include "tile_map.h"
 #include "game_state.h"
@@ -11,6 +12,7 @@
 void MainLoop();
 
 HINSTANCE gHinstance;
+TLog Log;
 
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -19,6 +21,7 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCm
 	i.dwSize = sizeof(i);
 	i.dwICC = ICC_STANDARD_CLASSES;
 	InitCommonControlsEx(&i);
+	Log.Init();
 	MainLoop();
 	return 0;
 }

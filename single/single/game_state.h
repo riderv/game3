@@ -24,7 +24,8 @@ struct TGameState : IGameState
 	void TGameState::OnResize() override	{ mCurrentState->OnResize(); }
 	bool TGameState::IsClosed() const		{ return mClosed; }
 
-	void TGameState::GotoMapEditor(const TMapParams &);
+	void TGameState::GotoMapEditor_CreateMap(const TMapParams &);
+	void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName);
 //protected:
 	TMainMenuState	*mMainMenuState = nullptr;
 	TMapEditorState *mMapEditorState = nullptr;

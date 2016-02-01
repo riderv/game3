@@ -28,7 +28,68 @@
 #include <Commctrl.h>
 
 #include <sstream>
+#include <fstream>  
+#include <sstream>
 
 #include <unordered_map>
 
 #include <inttypes.h>
+
+// иначе limits не работает
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
+#include <limits>
+
+#include <commdlg.h>
+
+#include <wchar.h>
+
+extern HINSTANCE gHinstance;
+
+typedef uint64_t ui64;
+typedef int64_t i64;
+typedef uint32_t ui32;
+typedef int32_t i32;
+typedef uint16_t ui16;
+typedef int16_t i16;
+typedef uint8_t ui8;
+typedef int8_t i8;
+
+template <class T>
+constexpr T Min()
+{
+	return std::numeric_limits<T>::min();
+}
+
+template <class T>
+constexpr T Max()
+{
+	return std::numeric_limits<T>::max();
+}
+
+constexpr uint32_t ui32min()
+{
+	return Min<uint32_t>();
+}
+constexpr uint32_t ui32max()
+{
+	return Max<uint32_t>();
+}
+
+#define CHECK_RANGE(Val, Min, Max)\
+	if(Val < Min || Val > Max){\
+		std::stringstream s;\
+		s << "CHECK_RANGE(val:" << Val << ", Min:" << Min << ", Max:" << Max << " failed.";\
+		throw std::out_of_range(s.str()); };
+
+
+#define SQLITE_API __declspec(dllimport)
+#define SQLITE_STDCALL __stdcall
+
+#include "sqlite3.h"
