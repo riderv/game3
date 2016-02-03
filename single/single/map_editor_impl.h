@@ -59,23 +59,38 @@ void TMapEditorState::PoolEvent(sf::Event & Event)
 void TMapEditorState::Simulate()
 {
 	sf::Time time = mKeyDelayClock.getElapsedTime();
-	if (time.asMilliseconds() > 50)
+	if (time.asMilliseconds() > 15)
 	{
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 		{
-			mViewOffsetInTiles.x++;
+			if(mViewOffsetInTiles.x < (mViewSizeInTiles.x-1) )
+				mViewOffsetInTiles.x++;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 		{
-			mViewOffsetInTiles.y++;
+			if (mViewOffsetInTiles.y < (mViewSizeInTiles.y-1))
+				mViewOffsetInTiles.y++;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 		{
-			mViewOffsetInTiles.x--;
+			if (mViewOffsetInTiles.x < 0)
+			{
+				if (abs(mViewOffsetInTiles.x) < (mTileMap.mParam.w - 1))
+					mViewOffsetInTiles.x--;
+			}
+			else
+				mViewOffsetInTiles.x--;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 		{
-			mViewOffsetInTiles.y--;
+			if (mViewOffsetInTiles.y < 0)
+			{
+				if (abs(mViewOffsetInTiles.y) < (mTileMap.mParam.h - 1))
+					mViewOffsetInTiles.y--;
+			}
+			else
+				mViewOffsetInTiles.y--;
+
 		}
 		mKeyDelayClock.restart();
 	}
@@ -89,14 +104,15 @@ void TMapEditorState::Draw()
 	{
 		for (int ty = 0; ty < mViewSizeInTiles.y; ++ty)
 		{
-			int xof = tx + mViewOffsetInTiles.x;
-			int yof = ty + mViewOffsetInTiles.y;
-			TileType Type = mTileMap.TypeAt(uint16_t(xof), uint16_t(yof));
-			if (Type == TileType::Unknown)
+			int xof = tx - mViewOffsetInTiles.x;
+			int yof = ty - mViewOffsetInTiles.y;
+			
+			TTileType Type = mTileMap.TypeAt(xof, yof);
+			if (Type == TTileType::Unknown)
 				continue;
 			sf::IntRect r( int(Type)*TilePxSize, 0, TilePxSize, TilePxSize );
 			mTileSprite.setTextureRect(r);
-			sf::Vector2f pos_in_pixels(float(xof * TilePxSize), float(yof * TilePxSize));
+			sf::Vector2f pos_in_pixels(float(tx * TilePxSize), float(ty * TilePxSize));
 			mTileSprite.setPosition(pos_in_pixels);
 			Win.draw(mTileSprite);
 		}

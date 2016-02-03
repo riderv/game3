@@ -5,14 +5,16 @@
 
 
 
-TileType TTileMap::TypeAt(uint16_t x, uint16_t y) const
+TTileType TTileMap::TypeAt(int x, int y) const
 {
+	if (x < 0 || y < 0)
+		return TTileType::Unknown;
 	if ( x >= mParam.w || y >= mParam.h)
-		return TileType::Unknown;
+		return TTileType::Unknown;
 
 	TCoord2Int key;
-	key.x = x;
-	key.y = y;
+	key.x = ui16(x);
+	key.y = ui16(y);
 	auto i = mMap.find(key);
 	if( i == mMap.end() )
 		return mParam.PrevalentTileType;
@@ -87,7 +89,7 @@ void TTileMap::Load(SQLite::TDB& db)
 		ui16 Type;
 		Stmt.Get(2, Type, IsNull);
 		assert(IsNull == false);
-		p.PrevalentTileType = TileType(Type);
+		p.PrevalentTileType = TTileType(Type);
 		if (SQLITE_DONE != Stmt.Step())
 		{
 			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return many.");
@@ -112,7 +114,7 @@ void TTileMap::Load(SQLite::TDB& db)
 			Stmt.Get(2, Type, IsNull);
 			assert(IsNull == false);
 
-			NewMap[co] = TileType(Type);
+			NewMap[co] = TTileType(Type);
 			
 		}
 		assert(ret == SQLITE_DONE);

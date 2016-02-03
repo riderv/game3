@@ -114,7 +114,7 @@ void TMainMenuState::OnGenMap(void *This)
 	HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
 	assert(NULL != hWndComboBox);
 
-	for (int i = 0; i < int(TileType::Count); ++i )
+	for (int i = 0; i < int(TTileType::Count); ++i )
 	{
 		const char* TileTypeName = TileType_Names[i];
 		LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileTypeName);
@@ -166,19 +166,23 @@ void TMainMenuState::OnGenMap(void *This)
 		TCoord2Int c;
 		c.x = x;
 		c.y = 0;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
 		c.y = Param.h - 1;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
 	}
 	for (int y = 1; y < (Param.h - 1); ++y)
 	{
 		TCoord2Int c;
 		c.y = y;
 		c.x = 0;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
 		c.x = Param.w - 1;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TileType::Water;
+		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
 	}
+	TCoord2Int c;
+	c.x = 3;
+	c.y = 3;
+	self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
 }
 
 
