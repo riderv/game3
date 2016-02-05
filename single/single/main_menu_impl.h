@@ -38,6 +38,8 @@ inline void TMenu::Draw(sf::RenderTarget& Target)
 TMainMenuState::TMainMenuState()
 {
 	assert(mFont.loadFromFile("c:/windows/fonts/consola.ttf"));
+	//assert(mFont.loadFromFile("c:/windows/fonts/cour.ttf"));
+	//const_cast<sf::Texture&>(mFont.getTexture(10)).setSmooth(false);
 
 	float x(100.0f), y(100.0f);
 	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
@@ -56,6 +58,8 @@ TMainMenuState::TMainMenuState()
 
 }
 
+
+
 void TMainMenuState::PoolEvent(sf::Event & Event)
 {
 	if (Event.type == sf::Event::KeyReleased)
@@ -71,11 +75,6 @@ void TMainMenuState::OnResize()
 {
 }
 
-void TMainMenuState::Simulate()
-{
-
-}
-
 INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) /* more compact, each "case" through a single line, easier on the eyes */
@@ -87,6 +86,23 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case IDOK:		
 			PostQuitMessage(0);
 			return TRUE;
+		case IDC_BUTTON_BROWSE:
+			{
+				BROWSEINFO bi = { 0 };
+				bi.lpszTitle = L"Select directory";
+				LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+				if (pidl)
+				{
+					wchar_t tszPath[MAX_PATH] = L"\0";
+					if (SHGetPathFromIDList(pidl, tszPath) == TRUE)
+					{
+						std::wstring strPath = tszPath;
+						SetDlgItemTextW(hDlg, IDC_STATIC_FullName, strPath.c_str());
+					}
+					CoTaskMemFree(pidl);
+				}
+			}
+		return TRUE;
 		}
 		break;
 
@@ -116,31 +132,30 @@ void TMainMenuState::OnGenMap(void *This)
 
 	for (int i = 0; i < int(TTileType::Count); ++i )
 	{
-		const char* TileTypeName = TileType_Names[i];
-		LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileTypeName);
+		LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileType_Names[i]);
 		assert(res == i);
-		assert(res != CB_ERR);
-		assert(res != CB_ERRSPACE);
 	}
 	lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
+
 	ShowWindow(hDlg, SW_SHOW);
-
-	//UpdateWindow(hDlg);
-
 	while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
 	{
-		if (ret == -1) {
-			__debugbreak();
-			break;
-		}
 		if (!IsDialogMessage(hDlg, &msg)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
 	}
 	// —читаем из диалога пользовательский ввод.
+	std::wstring FileName(1024 * 4, L'\0');
+	std::wstring Dir(1024 * 4, L'\0');
 	TMapParams Param;
-	assert( 0 != GetDlgItemText(hDlg, IDC_EDIT_FILENAME, const_cast<LPWSTR>(Param.FileName.c_str()), static_cast<int>(Param.FileName.size())) );
+	assert( 0 != GetDlgItemTextW(hDlg, IDC_EDIT_FILENAME,
+								const_cast<LPWSTR>(FileName.c_str()),
+								static_cast<int>(FileName.size())));
+	assert( 0 != GetDlgItemTextW(hDlg, IDC_STATIC_FullName,
+								const_cast<LPWSTR>(Dir.c_str()),
+								static_cast<int>(Dir.size())));
+	Param.FileName = Dir + L"\\" + FileName;
 	BOOL ok;
 	Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
 	assert(ok == TRUE);

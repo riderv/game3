@@ -41,5 +41,6 @@ void MainLoop()
 		GameState.Draw();
 		// Display window contents on screen
 		Win.display();
+
 	}	
 }

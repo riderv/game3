@@ -49,7 +49,6 @@ struct TMainMenuState : IGameState
 	TMainMenuState::TMainMenuState();
 
 	void TMainMenuState::PoolEvent(sf::Event &) override;
-	void TMainMenuState::Simulate() override;
 	void TMainMenuState::Draw() override;
 	void TMainMenuState::OnResize() override;
 

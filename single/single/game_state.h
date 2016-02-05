@@ -3,7 +3,7 @@
 struct IGameState
 {
 	virtual void PoolEvent(sf::Event &) {}
-	virtual void Simulate() {}
+	virtual void Simulate() { Sleep(1000 / 60);  } // нафига нагружать процессор если делать нечего.
 	virtual void Draw() = 0;
 	virtual void OnResize() = 0;
 };
