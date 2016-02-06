@@ -57,6 +57,31 @@ struct TLog
 		}
 		return *this;
 	}
+	TLog& operator()(const std::wstring& msg)
+	{
+		ULONG bytes;
+		int nUserNameLen = WideCharToMultiByte(
+			CP_ACP, // ANSI Code Page
+			0, // No special handling of unmapped chars
+			msg.c_str(), // wide-character string to be converted
+			static_cast<int>(msg.size()),
+			NULL, 0, // No output buffer since we are calculating length
+			NULL, NULL); // Unrepresented char replacement - Use Default 
+
+		std::string s(nUserNameLen, '\0');
+		WideCharToMultiByte(CP_ACP, // ANSI Code Page
+			0, // No special handling of unmapped chars
+			msg.c_str(), // wide-character string to be converted
+			static_cast<int>(msg.size()),
+			const_cast<char*>(s.c_str()),
+			static_cast<int>(s.size()),
+			NULL, NULL); // Unrepresented char replacement - Use Default
+		if (0 == WriteFile(HFile, PVOID(s.c_str()), (DWORD)s.size(), &bytes, DWORD(NULL)))
+		{
+			MessageBoxW(0, (L"ERROR write log\n" + LastErrStr()).c_str(), L"error", MB_ICONERROR);
+		}
+		return *this;
+	}
 
 };
 extern TLog Log;

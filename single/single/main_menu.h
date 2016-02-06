@@ -1,6 +1,6 @@
 #pragma once
 #include "tile_types.h"
-
+#include "sys.h"
 //----------------------------
 //			TMainMenuState Helpers
 //----------------------------
@@ -46,11 +46,11 @@ struct TMainMenuState : IGameState, noncopyable
 {
 	TMainMenuState::TMainMenuState(TGameState* pGameState);
 	TMainMenuState::TMainMenuState(const TMainMenuState&) = delete;
+	TMainMenuState::~TMainMenuState();
 
 	void TMainMenuState::PoolEvent(sf::Event &) override;
 	void TMainMenuState::Draw() override;
 	void TMainMenuState::OnResize() override;
-
 	
 	enum { enCaption, enGenNewMap, enLoadMap,		enCount };
 	TMenu mMenu;
@@ -66,5 +66,6 @@ struct TMainMenuState : IGameState, noncopyable
 private:
 	TGameState *mState = nullptr;
 	sf::Font mFont;
+	void *mFontBuf = nullptr;
 };
 

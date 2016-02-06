@@ -9,6 +9,7 @@
 #include "main_window.h"
 #include "resource.h"
 #include "map_editor.h"
+#include "sys.h"
 //----------------------------
 //			TMenuItem
 //----------------------------
@@ -45,13 +46,85 @@ inline void TMenu::Draw(sf::RenderTarget& Target)
 //			TMainMenuState
 //----------------------------
 
+void* LoadFont(const std::wstring& FileName, sf::Font& sfFont)
+{
+	TFinally Finally;
+
+	HANDLE hFile;
+	HANDLE hMapFile;
+	void* pBuf;
+
+	hFile = CreateFileW(FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	if (INVALID_HANDLE_VALUE == hFile)
+	{
+		std::wstring erm = L"LoadFont,CreateFile failed. " + LastErrStr();
+		Log(erm);
+		throw erm;
+	}
+	Finally += [&]() { CloseHandle(hFile); };
+
+	hMapFile = CreateFileMappingW(
+		hFile,    // use paging file
+		NULL,                    // default security
+		PAGE_READONLY,          // read/write access
+		0,                       // maximum object size (high-order DWORD)
+		0,				 // maximum object size (low-order DWORD)
+		0);                 // name of mapping object
+
+	if (hMapFile == NULL)
+	{
+		std::wstring erm = L"Could not create file mapping object.\n" + LastErrStr();
+		Log(erm);
+		throw erm;
+	}
+	Finally += [&](){ CloseHandle(hMapFile); };
+
+	pBuf = MapViewOfFile(hMapFile,   // handle to map object
+		FILE_MAP_READ, // read/write permission
+		0,
+		0,
+		0);
+
+	if (pBuf == NULL)
+	{		
+		std::wstring erm = L"Could not map view of file.\n" + LastErrStr();
+		Log(erm);
+		throw erm;
+	}
+	Finally += [&]() { UnmapViewOfFile(pBuf); };
+
+	DWORD FileSize;
+	FileSize = GetFileSize(hFile, 0);
+	if (FileSize == INVALID_FILE_SIZE)
+	{
+		std::wstring erm = L"GetFileSize failed. " + LastErrStr();
+		Log(erm);
+		throw erm;
+	}
+	if (false == sfFont.loadFromMemory(pBuf, FileSize))
+	{
+		std::wstring erm = L"sfml sf::Font::loadFromMemory failed";
+		throw erm;
+	}
+	Finally.vec.erase(Finally.vec.begin() + Finally.vec.size() - 1);
+	return pBuf;
+}
+TMainMenuState::~TMainMenuState()
+{
+	if (mFontBuf)
+		UnmapViewOfFile(mFontBuf);
+}
+
 
 TMainMenuState::TMainMenuState(TGameState* pGameState)
 	: mState(pGameState)
 {
-	assert(mFont.loadFromFile("c:/windows/fonts/consola.ttf"));
+	//assert(mFont.loadFromFile("c:/windows/fonts/tahoma.ttf"));
 	//assert(mFont.loadFromFile("c:/windows/fonts/cour.ttf"));
 	//const_cast<sf::Texture&>(mFont.getTexture(10)).setSmooth(false);
+	std::wstring ffn = GetExePatch() + L"/fonts/tahoma.ttf";
+	mFontBuf = LoadFont(ffn, mFont);
+	
 
 	float x(100.0f), y(100.0f);
 	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
@@ -216,7 +289,7 @@ void TMainMenuState::OnLoadMap(void *This_)
 		ShowLastErr(er);
 		return;
 	}
-	// Ёх, где же ты удобна€ VCL GetFilePath
+	// Ёх, где же ты удобна€ VCL
 	*wcsrchr(FilePath, L'\\') = L'\0';
 	
 	OPENFILENAMEW ofn = { 0 };

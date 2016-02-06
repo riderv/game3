@@ -12,7 +12,14 @@ extern sf::RenderWindow & Win;
 void MainLoop()
 {
 	new(g_WindowMemotySpace) sf::RenderWindow(sf::VideoMode(800, 600, 32), "Brodilka");
+	struct TFinWin {
+		~TFinWin() { Win.~RenderWindow(); }
+	} FinWin;
+	
 	new(g_GameStateMemorySpace) TGameState();
+	struct TFinGameState {
+		~TFinGameState() { GameState.~TGameState(); }
+	}FinGameState;
 
 	//sf::View v = win.getView();
 	//v.zoom(0.5f);
