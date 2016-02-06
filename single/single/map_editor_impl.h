@@ -6,7 +6,8 @@
 #include "main_window.h"
 #include "map_editor.h"
 
-TMapEditorState::TMapEditorState()
+TMapEditorState::TMapEditorState(TGameState* BaseState)
+	: mState(BaseState)
 {
 	//todo загрузку относительно ехе сделать
 	if (!mTileMap.mTileTexture.loadFromFile("d:/_pro/game3/res/simple_tile_set.png"))
@@ -21,7 +22,7 @@ TMapEditorState::TMapEditorState()
 
 		mMenu += TMenuItem()
 			.Text("F5) Save")
-			.Font(GameState.mMainMenuState->mFont)
+			.Font(GameState.MainMenuState->Font)
 			.Pos(x, y)
 			.CharSize(20)
 			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
@@ -29,7 +30,7 @@ TMapEditorState::TMapEditorState()
 
 		mMenu += TMenuItem()
 			.Text("F6) Load")
-			.Font(GameState.mMainMenuState->mFont)
+			.Font(GameState.MainMenuState->Font)
 			.Pos(x, y)
 			.CharSize(20)
 			.OnKey(sf::Keyboard::F6, &TMapEditorState::DoOnLoad);
@@ -135,23 +136,23 @@ void TMapEditorState::UpdateView()
 }
 void TMapEditorState::OnResize() { UpdateView(); }
 
-void TMapEditorState::DoOnSave(void *This)
+void TMapEditorState::DoOnSave(void *This_)
 {
-	TMapEditorState& self = *((TMapEditorState*)This);
-//	self.mTileMap.Save(self.mTileMap.mParam.FileName);
+	TMapEditorState& This = *((TMapEditorState*)This_);
+//	This.mTileMap.Save(This.mTileMap.mParam.FileName);
 	SQLite::TDB db;
-	db.Open(self.mTileMap.mParam.FileName.c_str() );
-	self.mTileMap.Save(db);
+	db.Open(This.mTileMap.mParam.FileName.c_str() );
+	This.mTileMap.Save(db);
 
 }
 
-void TMapEditorState::DoOnLoad(void *This)
+void TMapEditorState::DoOnLoad(void *This_)
 {
-	TMapEditorState& self = *((TMapEditorState*)This);
-//	self.mTileMap.Load(self.mTileMap.mParam.FileName);
+	TMapEditorState& This = *((TMapEditorState*)This_);
+//	This.mTileMap.Load(This.mTileMap.mParam.FileName);
 	SQLite::TDB db;
-	db.Open(self.mTileMap.mParam.FileName.c_str());
-	self.mTileMap.Load(db);
+	db.Open(This.mTileMap.mParam.FileName.c_str());
+	This.mTileMap.Load(db);
 }
 
 void TMapEditorState::LoadMap(const wchar_t* FileName)
@@ -165,4 +166,19 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 
 	UpdateView();
 
+}
+
+void TMapEditorState::ITileMapImpl::Set(int x, int y, TTileType val)
+{
+	TCoord2Int c(x, y);
+	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
+	This->mTileMap.mMap[c] = val;
+}
+
+TTileType TMapEditorState::ITileMapImpl::Get(int x, int y)
+{
+	TCoord2Int c(x, y);
+	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
+	TTileType ret = This->mTileMap.mMap[c];
+	return ret;
 }

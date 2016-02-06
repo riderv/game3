@@ -11,8 +11,7 @@
 
 TGameState::TGameState()
 {
-	mCurrentState = mMainMenuState = new TMainMenuState;
-	mMainMenuState->mState = this;
+	mCurrentState = mMainMenuState = new TMainMenuState(this);
 }
 TGameState::~TGameState()
 {
@@ -32,8 +31,7 @@ void TGameState::GotoMapEditor_CreateMap(const TMapParams &MapParams)
 {
 	if (!mMapEditorState)
 	{
-		mMapEditorState = new TMapEditorState();
-		mMapEditorState->mState = this;
+		mMapEditorState = new TMapEditorState(this);
 	}
 	mCurrentState = mMapEditorState;
 	mMapEditorState->CreateMap(MapParams);
@@ -56,8 +54,7 @@ void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName)
 {
 	if (!mMapEditorState)
 	{
-		mMapEditorState = new TMapEditorState();
-		mMapEditorState->mState = this;
+		mMapEditorState = new TMapEditorState(this);
 	}
 	mCurrentState = mMapEditorState;
 	mMapEditorState->LoadMap(FileName);

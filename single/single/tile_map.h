@@ -15,15 +15,17 @@ struct TMapParams
 
 union TCoord2Int
 {
-	uint32_t ui;
+	TCoord2Int() :ui(0) {}
+	TCoord2Int(int x, int y) : x(ui16(x)), y(ui16(y)) { assert(x >= 0 && x <= Max<ui16>()); assert(y >= 0 && y <= Max<ui16>()); }
+	TCoord2Int(ui32 val) : ui(val) {}
+
+	ui32 ui;
 	struct {
-		uint16_t x;
-		uint16_t y;
+		ui16 x;
+		ui16 y;
 	};
-	bool operator==(const TCoord2Int& R)
-	{
-		return ui == R.ui;
-	}
+
+	bool operator==(const TCoord2Int& R) { return ui == R.ui;}
 	operator uint32_t() const { return ui; }
 };
 

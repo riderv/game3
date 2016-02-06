@@ -3,9 +3,9 @@
 struct IGameState
 {
 	virtual void PoolEvent(sf::Event &) {}
-	virtual void Simulate() { Sleep(1000 / 60);  } // нафига нагружать процессор если делать нечего.
 	virtual void Draw() = 0;
 	virtual void OnResize() = 0;
+	virtual void Simulate() {}
 };
 
 struct TMapEditorState; //: IGameState
@@ -17,16 +17,28 @@ struct TGameState : IGameState
 
 	TGameState::TGameState();
 	TGameState::~TGameState();
+	TGameState::TGameState(const TGameState&) = delete;
 
 	void TGameState::PoolEvent(sf::Event &) override;
 	void TGameState::Simulate() override	{ mCurrentState->Simulate(); }
 	void TGameState::Draw() override		{ mCurrentState->Draw(); }
 	void TGameState::OnResize() override	{ mCurrentState->OnResize(); }
-	bool TGameState::IsClosed() const		{ return mClosed; }
 
 	void TGameState::GotoMapEditor_CreateMap(const TMapParams &);
 	void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName);
-//protected:
+	union {
+		struct Prop_TMapEditorState: noncopyable {
+			TMapEditorState* operator->(){ return BASEHACK(TGameState, MapEditorState, this)->mMapEditorState; }
+		}MapEditorState;
+		struct Prop_TMainMenuState: noncopyable {
+			TMainMenuState* operator->() { return BASEHACK(TGameState, MapEditorState, this)->mMainMenuState; }
+		}MainMenuState;
+		struct Prop_IsClosed: noncopyable {
+			operator bool() const { return CONSTBASEHACK(TGameState, MapEditorState, this)->mClosed; }		
+		}IsClosed;
+	};
+	
+private:
 	TMainMenuState	*mMainMenuState = nullptr;
 	TMapEditorState *mMapEditorState = nullptr;
 	IGameState		*mCurrentState = nullptr;

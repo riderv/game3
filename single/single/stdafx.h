@@ -97,3 +97,17 @@ constexpr uint32_t ui32max()
 #define SQLITE_STDCALL __stdcall
 
 #include "sqlite3.h"
+
+#define BASEHACK(Class, Member, Ptr) (   (Class*) ( ((char*)this) - (long long)&(((Class*)0)->Member) )   )
+#define CONSTBASEHACK(Class, Member, Ptr) (   (const Class*) ( ((char*)this) - (long long)&(((Class*)0)->Member) )   )
+
+struct noncopyable
+{
+	noncopyable& operator=(const noncopyable&) = delete;
+	noncopyable(const noncopyable&) = delete;
+};
+
+struct nonassignable
+{
+	noncopyable& operator=(const noncopyable&) = delete;
+};

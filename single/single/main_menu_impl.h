@@ -13,16 +13,27 @@
 //			TMenuItem
 //----------------------------
 
-inline void TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object)
+inline TMenuItem& TMenuItem::OnKey(sf::Keyboard::Key Key, void(*callback_ptr)(void* object))
 {
-	if (Key == this->Key && callback)
+	assert(callback_ptr);
+	this->Key = Key;
+	callback = callback_ptr;
+	return *this;
+}
+inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object)
+{
+	if (Key == this->Key) {
 		callback(object);
+		return true;
+	}
+	return false;
 }
 
 inline void TMenu::ProcessKey(sf::Keyboard::Key Key)
 {
 	for (auto mi : items)
-		mi.ProcessKey(Key, object_handler);
+		if (mi.ProcessKey(Key, object_handler))
+			break;
 }
 
 inline void TMenu::Draw(sf::RenderTarget& Target)
@@ -35,7 +46,8 @@ inline void TMenu::Draw(sf::RenderTarget& Target)
 //----------------------------
 
 
-TMainMenuState::TMainMenuState()
+TMainMenuState::TMainMenuState(TGameState* pGameState)
+	: mState(pGameState)
 {
 	assert(mFont.loadFromFile("c:/windows/fonts/consola.ttf"));
 	//assert(mFont.loadFromFile("c:/windows/fonts/cour.ttf"));
@@ -114,9 +126,9 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
-void TMainMenuState::OnGenMap(void *This)
+void TMainMenuState::OnGenMap(void *This_)
 {
-	TMainMenuState &self = *((TMainMenuState*)This);
+	TMainMenuState &This = *((TMainMenuState*)This_);
 	
 	// Спросим у юзера каким размеров карту ему хочется.
 	HWND hDlg;
@@ -174,37 +186,26 @@ void TMainMenuState::OnGenMap(void *This)
 	//Param.w = 16;
 	//Param.PrevalentTileType = TileType::Graund;
 	
-	self.mState->GotoMapEditor_CreateMap(Param);
+	This.mState->GotoMapEditor_CreateMap(Param);
 	
 	for (int x = 0; x < Param.w; ++x)
 	{
-		TCoord2Int c;
-		c.x = x;
-		c.y = 0;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
-		c.y = Param.h - 1;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
+		This.mState->MapEditorState->TileMap->Set(x,0, TTileType::Water);
+		This.mState->MapEditorState->TileMap->Set(x, Param.h - 1, TTileType::Water);
 	}
 	for (int y = 1; y < (Param.h - 1); ++y)
 	{
-		TCoord2Int c;
-		c.y = y;
-		c.x = 0;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
-		c.x = Param.w - 1;
-		self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
+		This.mState->MapEditorState->TileMap->Set(0,y, TTileType::Water);
+		This.mState->MapEditorState->TileMap->Set(Param.w - 1,y, TTileType::Water);
 	}
-	TCoord2Int c;
-	c.x = 3;
-	c.y = 3;
-	self.mState->mMapEditorState->mTileMap.mMap[c] = TTileType::Water;
+	This.mState->MapEditorState->TileMap->Set(3,3, TTileType::Water);
 }
 
 
 
-void TMainMenuState::OnLoadMap(void *This)
+void TMainMenuState::OnLoadMap(void *This_)
 {
-	TMainMenuState &self = *((TMainMenuState*)This);
+	TMainMenuState &This = *((TMainMenuState*)This_);
 	
 	static const int FileName_BufSize = 4 * 1024;
 	wchar_t FileName[FileName_BufSize] = { 0 };
@@ -226,8 +227,11 @@ void TMainMenuState::OnLoadMap(void *This)
 
 	if (GetOpenFileNameW(&ofn))
 	{
-		MessageBoxW(NULL, ofn.lpstrFile, L"File Name", MB_OK);
+		std::wstring w(1024, L'\0');
+		GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
+		Win.setTitle("Loading map...");
 		GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
+		Win.setTitle(w.c_str());
 	}
 
 }

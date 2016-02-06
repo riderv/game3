@@ -1,10 +1,16 @@
 #pragma once
 
 #include "game_state.h"
+struct ITileMap
+{
+	virtual void Set(int x, int y, TTileType val) = 0;
+	virtual TTileType Get(int x, int y) = 0;
+};
 
 struct TMapEditorState : IGameState
 {
-		 TMapEditorState::TMapEditorState();
+		 TMapEditorState::TMapEditorState(TGameState* BaseState);
+		 TMapEditorState::TMapEditorState(const TMapEditorState&) = delete;
 	void TMapEditorState::PoolEvent(sf::Event &) override;
 	void TMapEditorState::Simulate() override;
 	void TMapEditorState::Draw() override;
@@ -19,8 +25,13 @@ struct TMapEditorState : IGameState
 
 	// когда в главном меню выбираем LoadMap
 	void TMapEditorState::LoadMap(const wchar_t* FileName);
-//protected:
 
+	union {
+		struct Prop_TileMap: noncopyable {
+			ITileMap* operator->() { return &BASEHACK(TMapEditorState, TileMap, this)->miTileMap; }
+		}TileMap;
+	};
+private:
 	TGameState *mState = nullptr;
 	TTileMap mTileMap;
 
@@ -32,4 +43,10 @@ struct TMapEditorState : IGameState
 	sf::Clock mKeyDelayClock;
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
+
+	struct ITileMapImpl: ITileMap
+	{
+		void      ITileMapImpl::Set(int x, int y, TTileType val) override;
+		TTileType ITileMapImpl::Get(int x, int y) override;
+	}miTileMap;
 };
