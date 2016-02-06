@@ -12,12 +12,11 @@ struct TMapEditorState; //: IGameState
 struct TMainMenuState;	//: IGameState
 struct TMapParams;
 
-struct TGameState : IGameState
+struct TGameState : IGameState, noncopyable
 {
 
 	TGameState::TGameState();
 	TGameState::~TGameState();
-	TGameState::TGameState(const TGameState&) = delete;
 
 	void TGameState::PoolEvent(sf::Event &) override;
 	void TGameState::Simulate() override	{ mCurrentState->Simulate(); }

@@ -103,6 +103,7 @@ constexpr uint32_t ui32max()
 
 struct noncopyable
 {
+	noncopyable() {}
 	noncopyable& operator=(const noncopyable&) = delete;
 	noncopyable(const noncopyable&) = delete;
 };

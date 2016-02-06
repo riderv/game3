@@ -42,7 +42,7 @@ struct TMenu
 //----------------------------
 struct TMapParams;
 
-struct TMainMenuState : IGameState
+struct TMainMenuState : IGameState, noncopyable
 {
 	TMainMenuState::TMainMenuState(TGameState* pGameState);
 	TMainMenuState::TMainMenuState(const TMainMenuState&) = delete;

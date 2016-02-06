@@ -7,10 +7,9 @@ struct ITileMap
 	virtual TTileType Get(int x, int y) = 0;
 };
 
-struct TMapEditorState : IGameState
+struct TMapEditorState : IGameState, noncopyable
 {
 		 TMapEditorState::TMapEditorState(TGameState* BaseState);
-		 TMapEditorState::TMapEditorState(const TMapEditorState&) = delete;
 	void TMapEditorState::PoolEvent(sf::Event &) override;
 	void TMapEditorState::Simulate() override;
 	void TMapEditorState::Draw() override;
