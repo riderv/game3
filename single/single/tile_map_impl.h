@@ -18,7 +18,7 @@ void TTileMap::Set(int x, int y, TTileType TileType)
 	assert(x >= 0 && x < mParam.w);
 	assert(y >= 0 && y < mParam.h);
 	
-	if (mParam.PrevalentTileType == TileType)
+	if (mParam.DefaultTileType == TileType)
 	{
 		auto i = mMap.find({x,y});
 		if (i != mMap.end())
@@ -42,7 +42,7 @@ TTileType TTileMap::TypeAt(int x, int y) const
 	key.y = ui16(y);
 	auto i = mMap.find(key);
 	if( i == mMap.end() )
-		return mParam.PrevalentTileType;
+		return mParam.DefaultTileType;
 
 	return i->second;
 }
@@ -61,13 +61,13 @@ void TTileMap::Save(SQLite::TDB& db)
 			//"id INTEGER PRIMARY KEY,"
 			"w INTEGER,"
 			"h INTEGER,"
-			"PrevalentTileType INTEGER)"
+			"DefaultTileType INTEGER)"
 	);
 	{
 		auto St = db.Prepare("INSERT INTO map VALUES(?,?,?)");
 		St.Bind(1, mParam.w);
 		St.Bind(2, mParam.h);
-		St.Bind(3, mParam.PrevalentTileType);
+		St.Bind(3, mParam.DefaultTileType);
 		if (St.Step() != SQLITE_DONE)
 			db.Raise("INSERT INTO map VALUES(?,?,?); failed");
 
@@ -117,10 +117,10 @@ void TTileMap::Load(SQLite::TDB& db)
 	bool IsNull; // todo: null check
 	// read map from database
 	{
-		auto Stmt = db.Prepare("select w,h,PrevalentTileType from map");
+		auto Stmt = db.Prepare("select w,h,DefaultTileType from map");
 		if (SQLITE_ROW != Stmt.Step())
 		{
-			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return zero.");
+			db.Raise("TTileMap::Load, 'select w,h,DefaultTileType from map' failed. One row must present. Query return zero.");
 		}
 		Stmt.Get(0, tmpParam.w, IsNull); // WTF? 0-based unlike param-binding
 		assert(IsNull == false);
@@ -129,10 +129,10 @@ void TTileMap::Load(SQLite::TDB& db)
 		ui16 Type;
 		Stmt.Get(2, Type, IsNull);
 		assert(IsNull == false);
-		tmpParam.PrevalentTileType = TTileType(Type);
+		tmpParam.DefaultTileType = TTileType(Type);
 		if (SQLITE_DONE != Stmt.Step())
 		{
-			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return many.");
+			db.Raise("TTileMap::Load, 'select w,h,DefaultTileType from map' failed. One row must present. Query return many.");
 		}
 	}
 	

@@ -42,8 +42,8 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				[](void* s)
 				{
 					auto t = ((TMapEditorState*)s);
-					t->mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
-					t->mCurrentBrush = t->mTileMap.mParam.PrevalentTileType;
+					t->mCursorSprite.setTextureRect({ t->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize });
+					t->mCurrentBrush = t->mTileMap.mParam.DefaultTileType;
 				}
 		);
 		y += 15;
@@ -87,14 +87,16 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 		);
 		y += 15;
 	}
-	
+	mLastAction.setFont(GameState.Font);
+	mLastAction.setCharacterSize(20);
 }
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
 	mTileSprite.setTexture(mTileMap.mTilesetTexture);
-	mCurrentBrush = mTileMap.mParam.PrevalentTileType;
+	mCurrentBrush = mTileMap.mParam.DefaultTileType;
+	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 	UpdateView();
 	
 }
@@ -106,7 +108,7 @@ void TMapEditorState::PoolEvent(sf::Event & Event)
 	case sf::Event::EventType::KeyReleased:
 		mMenu.ProcessKey(Event.key.code);
 		break;
-	case sf::Event::EventType::MouseButtonReleased:
+	case sf::Event::EventType::MouseButtonPressed:
 		OnMouseClick(Event.mouseButton.x, Event.mouseButton.y);
 		break;
 	}
@@ -121,8 +123,13 @@ void TMapEditorState::OnMouseClick(int x, int y)
 	ty -= mViewOffsetInTiles.y;
 	TTileType tt = mTileMap.TypeAt(tx, ty);
 	//MessageBoxA(0, TileName(tt), "tile under cursor", MB_OK);
-	MessageBoxA(0, TileName(mCurrentBrush), "tile under cursor", MB_OK);
+	//MessageBoxA(0, TileName(mCurrentBrush), "tile under cursor", MB_OK);
 	mTileMap.SafeSet(tx, ty, mCurrentBrush);
+
+	sf::String msg = TileName(tt);
+	msg += " -> ";
+	msg += TileName(mCurrentBrush);
+	mLastAction.setString( msg );
 }
 
 void TMapEditorState::Simulate()
@@ -192,6 +199,7 @@ void TMapEditorState::Draw()
 	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
 	Win.draw(mCursorSprite);
 	mMenu.Draw(Win);
+	Win.draw(mLastAction);
 }
 void TMapEditorState::UpdateView()
 {
@@ -204,8 +212,9 @@ void TMapEditorState::UpdateView()
 	// записать сколько тайлов влезает во View и отрисовывать только влезающие
 	auto vs = mView.getSize();
 	mViewSizeInTiles.x = int(vs.x / TilePxSize);
-	mViewSizeInTiles.y = int(vs.y / TilePxSize);
-	
+	mViewSizeInTiles.y = int(vs.y / TilePxSize)+1;
+
+	mLastAction.setPosition(10.0f, float(ws.y - mLastAction.getCharacterSize()) - 10.0f);
 }
 void TMapEditorState::OnResize() { UpdateView(); }
 
@@ -234,9 +243,9 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 	db.Open(FileName);
 	mTileMap.Load(db);
 	mTileMap.mParam.FileName = FileName;
-	mCurrentBrush = mTileMap.mParam.PrevalentTileType;
-
+	mCurrentBrush = mTileMap.mParam.DefaultTileType;
 	mTileSprite.setTexture(mTileMap.mTilesetTexture);
+	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 
 	UpdateView();
 

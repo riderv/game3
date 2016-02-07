@@ -45,11 +45,14 @@ private:
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
 	sf::Sprite mCursorSprite;
-	TTileType mCurrentBrush = mTileMap.mParam.PrevalentTileType;
+	TTileType mCurrentBrush = mTileMap.mParam.DefaultTileType;
 
 	struct ITileMapImpl: ITileMap
 	{
 		void      ITileMapImpl::Set(int x, int y, TTileType val) override;
 		TTileType ITileMapImpl::Get(int x, int y) override;
 	}miTileMap;
+
+	
+	sf::Text mLastAction;
 };

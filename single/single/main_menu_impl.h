@@ -240,7 +240,7 @@ void TMainMenuState::OnGenMap(void *This_)
 		assert(ok == TRUE);
 		assert(Param.h > 0);
 		assert(Param.h <= Max<ui16>());
-		Param.PrevalentTileType = TileTypeFromInt((int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0));
+		Param.DefaultTileType = TileTypeFromInt((int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0));
 
 		DestroyWindow(hDlg);
 		hDlg = NULL;
@@ -248,7 +248,7 @@ void TMainMenuState::OnGenMap(void *This_)
 
 		//Param.h = 16;
 		//Param.w = 16;
-		//Param.PrevalentTileType = TileType::Graund;
+		//Param.DefaultTileType = TileType::Graund;
 
 		This->mState->GotoMapEditor_CreateMap(Param);
 

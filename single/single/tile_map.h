@@ -8,7 +8,7 @@ struct TMapParams
 	std::wstring FileName;
 	int w = 0; // width
 	int h = 0; // heigth
-	TTileType PrevalentTileType = TTileType::Unknown;
+	TTileType DefaultTileType = TTileType::Unknown;
 
 	TMapParams() {  }
 };
