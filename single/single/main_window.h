@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include "game_state.h"
+#include "tile_types.h"
 
 extern char g_GameStateMemorySpace[sizeof(TGameState)];
 extern TGameState & GameState;
@@ -20,6 +21,8 @@ void MainLoop()
 	struct TFinGameState {
 		~TFinGameState() { GameState.~TGameState(); }
 	}FinGameState;
+	
+	assert(TTileType::Count == sizeof(TileType_Names) / sizeof(TileType_Names[0]));
 
 	//sf::View v = win.getView();
 	//v.zoom(0.5f);

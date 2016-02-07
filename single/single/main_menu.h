@@ -57,15 +57,7 @@ struct TMainMenuState : IGameState, noncopyable
 
 	static void TMainMenuState::OnGenMap(void* This);
 	static void TMainMenuState::OnLoadMap(void* This);
-	
-	union {
-		struct Prop_Font: noncopyable {
-			operator sf::Font&() const { return BASEHACK(TMainMenuState, Font, this)->mFont; }
-		}Font;
-	};
 private:
 	TGameState *mState = nullptr;
-	sf::Font mFont;
-	void *mFontBuf = nullptr;
 };
 

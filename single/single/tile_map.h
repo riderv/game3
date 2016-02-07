@@ -10,7 +10,7 @@ struct TMapParams
 	int h = 0; // heigth
 	TTileType PrevalentTileType = TTileType::Unknown;
 
-	TMapParams() { FileName.resize(1024); }
+	TMapParams() {  }
 };
 
 union TCoord2Int
@@ -32,7 +32,9 @@ union TCoord2Int
 struct TTileMap
 {
 	
-	TTileType TTileMap::TypeAt(int x, int y) const;
+	TTileType	TTileMap::TypeAt(int x, int y) const;
+	void		TTileMap::Set(int x, int y, TTileType TileType);
+
 	void	 TTileMap::Reset(const TMapParams& MapParams);
 
 	void	 TTileMap::Save(SQLite::TDB& db);
@@ -43,6 +45,6 @@ struct TTileMap
 	typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
 	Index2TileType mMap;
 
-	sf::Texture mTileTexture;
+	sf::Texture mTilesetTexture;
 		
 };

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "exception.h"
+
 static const int TilePxSize = 20;
 // todo: заменить все int на int32
 enum TTileType : ui16
-{ Unknown,   Graund,   Water,  Count };
+{ Unknown,   Ground,   Water, Stones,  Count };
 
 static const char *TileType_Names[] = 
-{ "Unknown", "Graund", "Water" };
+{ "Unknown", "Graund", "Water", "Stones" };
 
 constexpr const char* TileName(TTileType tt)
 {
@@ -17,9 +19,9 @@ inline TTileType TileTypeFromInt(int val)
 {
 	if (val < int(TTileType::Unknown) || val >= int(TTileType::Count))
 	{
-		std::stringstream ss;
-		ss << "Incorrect int value " << val << " for TileType";
-		throw std::out_of_range(ss.str());
+		std::wstringstream ss;
+		ss << L"Incorrect int value " << val << L" for TileType";
+		throw TException(ss.str());
 	}
 	return TTileType(val);
 }

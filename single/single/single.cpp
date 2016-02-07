@@ -23,6 +23,11 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCm
 	InitCommonControlsEx(&i);
 	Log.Init();
 	MainLoop();
+	
+	//_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_WNDW);
+	//_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtDumpMemoryLeaks();
 	return 0;
 }
 

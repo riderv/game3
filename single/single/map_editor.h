@@ -3,8 +3,9 @@
 #include "game_state.h"
 struct ITileMap
 {
-	virtual void Set(int x, int y, TTileType val) = 0;
-	virtual TTileType Get(int x, int y) = 0;
+	virtual ITileMap::~ITileMap() {}
+	virtual void ITileMap::Set(int x, int y, TTileType val) = 0;
+	virtual TTileType ITileMap::Get(int x, int y) = 0;
 };
 
 struct TMapEditorState : IGameState, noncopyable
@@ -19,8 +20,8 @@ struct TMapEditorState : IGameState, noncopyable
 	void TMapEditorState::UpdateView();
 
 	// когда в редакторе карты жмём f5/f6
-	static void TMapEditorState::DoOnSave(void *This);
-	static void TMapEditorState::DoOnLoad(void *This);
+	static void TMapEditorState::DoOnSave(void *This_);
+	static void TMapEditorState::DoOnLoad(void *This_);
 
 	// когда в главном меню выбираем LoadMap
 	void TMapEditorState::LoadMap(const wchar_t* FileName);
@@ -42,6 +43,7 @@ private:
 	sf::Clock mKeyDelayClock;
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
+	sf::Sprite mCursorSprite;	
 
 	struct ITileMapImpl: ITileMap
 	{

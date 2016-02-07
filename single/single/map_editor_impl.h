@@ -9,39 +9,87 @@
 TMapEditorState::TMapEditorState(TGameState* BaseState)
 	: mState(BaseState)
 {
-	//todo загрузку относительно ехе сделать
-	if (!mTileMap.mTileTexture.loadFromFile("d:/_pro/game3/res/simple_tile_set.png"))
-		throw std::exception("simple_tile_set.png not found");
-
+	mTileMap.mTilesetTexture = GameState.GetTilesetTexture();
 	UpdateView();	
-
+	mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
+	mCursorSprite.setTexture(GameState.GetTilesetTexture());
+	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
+	mCursorSprite.setOrigin(TilePxSize / 2, TilePxSize / 2);
 	// init menu
 	{
 		float x(0.0f), y(0.0f);
 		mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
 
-		mMenu += TMenuItem()
+		TMenuItem DefMenuItem;
+		DefMenuItem.Font(GameState.Font).CharSize(10);
+
+		mMenu += TMenuItem(DefMenuItem)
 			.Text("F5) Save")
-			.Font(GameState.MainMenuState->Font)
 			.Pos(x, y)
-			.CharSize(20)
 			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
 		y += 30;
 
-		mMenu += TMenuItem()
+		mMenu += TMenuItem(DefMenuItem)
 			.Text("F6) Load")
-			.Font(GameState.MainMenuState->Font)
 			.Pos(x, y)
-			.CharSize(20)
 			.OnKey(sf::Keyboard::F6, &TMapEditorState::DoOnLoad);
-	}
+		y += 30;
 
+		mMenu += TMenuItem(DefMenuItem)
+			.Text("~) Default tile brush")
+			.Pos(x, y)
+			.OnKey(sf::Keyboard::Tilde,
+				[](void* s)
+				{
+					auto t = ((TMapEditorState*)s);
+					t->mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
+				}
+		);
+		y += 30;
+
+		mMenu += TMenuItem(DefMenuItem)
+			.Text("1) Ground brush")
+			.Pos(x, y)
+			.OnKey(sf::Keyboard::Num1,
+				[](void* s)
+				{
+					auto t = ((TMapEditorState*)s);
+					t->mCursorSprite.setTextureRect({TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize});
+				}
+		);
+		y += 30;
+
+		mMenu += TMenuItem(DefMenuItem)
+			.Text("2) Water brush")
+			.Pos(x, y)
+			.OnKey(sf::Keyboard::Num2,
+				[](void* s)
+				{
+					auto t = ((TMapEditorState*)s);
+					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize });
+				}
+		);
+		y += 30;
+
+		mMenu += TMenuItem(DefMenuItem)
+			.Text("3) Stones brush")
+			.Pos(x, y)
+			.OnKey(sf::Keyboard::Num3,
+				[](void* s)
+				{
+					auto t = ((TMapEditorState*)s);
+					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize });
+				}
+		);
+		y += 30;
+	}
+	
 }
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
-	mTileSprite.setTexture(mTileMap.mTileTexture);
+	mTileSprite.setTexture(mTileMap.mTilesetTexture);
 	
 	UpdateView();
 	
@@ -118,7 +166,11 @@ void TMapEditorState::Draw()
 			Win.draw(mTileSprite);
 		}
 	}
-
+	sf::Vector2u ws = Win.getSize();
+	sf::View v({0,0, float(ws.x), float(ws.y)});
+	Win.setView(v);
+	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
+	Win.draw(mCursorSprite);
 	//mMenu.Draw(Win);
 }
 void TMapEditorState::UpdateView()
@@ -162,7 +214,7 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 	mTileMap.Load(db);
 	mTileMap.mParam.FileName = FileName;
 	
-	mTileSprite.setTexture(mTileMap.mTileTexture);
+	mTileSprite.setTexture(mTileMap.mTilesetTexture);
 
 	UpdateView();
 
@@ -172,13 +224,33 @@ void TMapEditorState::ITileMapImpl::Set(int x, int y, TTileType val)
 {
 	TCoord2Int c(x, y);
 	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
-	This->mTileMap.mMap[c] = val;
+	This->mTileMap.Set(x,y, val);
 }
 
 TTileType TMapEditorState::ITileMapImpl::Get(int x, int y)
 {
 	TCoord2Int c(x, y);
 	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
-	TTileType ret = This->mTileMap.mMap[c];
+	TTileType ret = This->mTileMap.TypeAt(x, y);
 	return ret;
 }
+
+//void TMapEditorState::DoDefBrush(void *This_)
+//{
+//	TMapEditorState* This = (TMapEditorState*)This_;
+//}
+//
+//void TMapEditorState::DoGraundBrush(void *This_)
+//{
+//	TMapEditorState* This = (TMapEditorState*)This_;
+//}
+//
+//void TMapEditorState::DoWaterBrush(void *This_)
+//{
+//	TMapEditorState* This = (TMapEditorState*)This_;
+//}
+//
+//void TMapEditorState::DoStonesBrush(void *This_)
+//{
+//	TMapEditorState* This = (TMapEditorState*)This_;
+//}

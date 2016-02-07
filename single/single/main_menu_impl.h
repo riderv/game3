@@ -10,6 +10,7 @@
 #include "resource.h"
 #include "map_editor.h"
 #include "sys.h"
+#include "exception.h"
 //----------------------------
 //			TMenuItem
 //----------------------------
@@ -23,6 +24,9 @@ inline TMenuItem& TMenuItem::OnKey(sf::Keyboard::Key Key, void(*callback_ptr)(vo
 }
 inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object)
 {
+	if (Key == sf::Keyboard::Unknown)
+		return false;
+
 	if (Key == this->Key) {
 		callback(object);
 		return true;
@@ -46,100 +50,28 @@ inline void TMenu::Draw(sf::RenderTarget& Target)
 //			TMainMenuState
 //----------------------------
 
-void* LoadFont(const std::wstring& FileName, sf::Font& sfFont)
-{
-	TFinally Finally;
-
-	HANDLE hFile;
-	HANDLE hMapFile;
-	void* pBuf;
-
-	hFile = CreateFileW(FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-	if (INVALID_HANDLE_VALUE == hFile)
-	{
-		std::wstring erm = L"LoadFont,CreateFile failed. " + LastErrStr();
-		Log(erm);
-		throw erm;
-	}
-	Finally += [&]() { CloseHandle(hFile); };
-
-	hMapFile = CreateFileMappingW(
-		hFile,    // use paging file
-		NULL,                    // default security
-		PAGE_READONLY,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		0,				 // maximum object size (low-order DWORD)
-		0);                 // name of mapping object
-
-	if (hMapFile == NULL)
-	{
-		std::wstring erm = L"Could not create file mapping object.\n" + LastErrStr();
-		Log(erm);
-		throw erm;
-	}
-	Finally += [&](){ CloseHandle(hMapFile); };
-
-	pBuf = MapViewOfFile(hMapFile,   // handle to map object
-		FILE_MAP_READ, // read/write permission
-		0,
-		0,
-		0);
-
-	if (pBuf == NULL)
-	{		
-		std::wstring erm = L"Could not map view of file.\n" + LastErrStr();
-		Log(erm);
-		throw erm;
-	}
-	Finally += [&]() { UnmapViewOfFile(pBuf); };
-
-	DWORD FileSize;
-	FileSize = GetFileSize(hFile, 0);
-	if (FileSize == INVALID_FILE_SIZE)
-	{
-		std::wstring erm = L"GetFileSize failed. " + LastErrStr();
-		Log(erm);
-		throw erm;
-	}
-	if (false == sfFont.loadFromMemory(pBuf, FileSize))
-	{
-		std::wstring erm = L"sfml sf::Font::loadFromMemory failed";
-		throw erm;
-	}
-	Finally.vec.erase(Finally.vec.begin() + Finally.vec.size() - 1);
-	return pBuf;
-}
 TMainMenuState::~TMainMenuState()
 {
-	if (mFontBuf)
-		UnmapViewOfFile(mFontBuf);
 }
 
 
 TMainMenuState::TMainMenuState(TGameState* pGameState)
 	: mState(pGameState)
 {
-	//assert(mFont.loadFromFile("c:/windows/fonts/tahoma.ttf"));
-	//assert(mFont.loadFromFile("c:/windows/fonts/cour.ttf"));
-	//const_cast<sf::Texture&>(mFont.getTexture(10)).setSmooth(false);
-	std::wstring ffn = GetExePatch() + L"/fonts/tahoma.ttf";
-	mFontBuf = LoadFont(ffn, mFont);
-	
-
 	float x(100.0f), y(100.0f);
 	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
-	
+
 	mMenu += TMenuItem().Text(L"Бродилка")
-		.Font(mFont).Pos(x, y).CharSize(30);
+		.Font(GameState.Font).Pos(x, y).CharSize(30);
 	y += 60;
 
 	mMenu += TMenuItem().Text("1) Generate and edit map.")
-		.Font(mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);		
+		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);
 	y += 30;
 
 	mMenu += TMenuItem().Text("2) Load map...")
-		.Font(mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);		
-	
+		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);
+
 
 }
 
@@ -160,6 +92,47 @@ void TMainMenuState::OnResize()
 {
 }
 
+int DialogResult = IDCANCEL;
+
+static int __stdcall BrowseNotify(HWND hWnd, UINT iMessage, LPARAM wParam, LPARAM lParam)
+{
+	if (iMessage == BFFM_INITIALIZED)
+	{
+		// Шешил в файлик сохранять предыдущие настройки, 
+		// в частности куда последний раз создавали карту,
+		// и попал на несколько часов: 
+		// не знал, что работать с текстовыми юникод-файлами
+		// в винде такая голованя боль.
+		// TODO ПЕРЕДЕЛАТЬ НА БД ИЛИ БИНАРНЫЙ ФАЙЛ
+		std::wstring fn = GetExePatch() + L"\\last_map_dir";
+		FILE * F = _wfopen( fn.c_str(), L"rt, ccs=UTF-16LE");
+		if (!F)
+			return 1;
+		struct TFClose { FILE *f;  ~TFClose() { fclose(f); } } FClose = { F };
+		wchar_t str[1024 * 4];
+		const wchar_t ptrn[] = L"last_map_dir=";
+		bool found = false;
+		while (!feof(F))
+		{
+			if (NULL == fgetws(str, 1024 * 4, F))
+				return 1;
+
+			if (0 == wcsncmp(ptrn, str, wcslen(ptrn)))
+			{
+				if ( wcslen(str) > wcslen(ptrn) ){
+					wcsncpy_s(str,wcslen(str), str + wcslen(ptrn), wcslen(str) - wcslen(ptrn)-1);
+					found = true;
+				}	
+				break;
+			}
+		}
+		if(found)
+			SendMessageW(hWnd, BFFM_SETSELECTION, 1, (LPARAM)str);    // Set initial folder
+		return 1;
+	}
+	return 0;
+}
+
 INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) /* more compact, each "case" through a single line, easier on the eyes */
@@ -167,14 +140,16 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+		case IDOK:
+			DialogResult = IDOK;
 		case IDCANCEL:
-		case IDOK:		
 			PostQuitMessage(0);
 			return TRUE;
 		case IDC_BUTTON_BROWSE:
 			{
 				BROWSEINFO bi = { 0 };
 				bi.lpszTitle = L"Select directory";
+				bi.lpfn = BrowseNotify;
 				LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
 				if (pidl)
 				{
@@ -201,84 +176,107 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void TMainMenuState::OnGenMap(void *This_)
 {
-	TMainMenuState &This = *((TMainMenuState*)This_);
-	
-	// Спросим у юзера каким размеров карту ему хочется.
-	HWND hDlg;
-	MSG msg;
-	BOOL ret;
-	LRESULT lres;
-	// Диалог -- IDD_NEW_MAP_DIALOG //
-	hDlg = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
-	assert(NULL != hDlg);
-	
-	HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
-	assert(NULL != hWndComboBox);
+	TMainMenuState *This = ((TMainMenuState*)This_);
+	HWND hDlg = NULL;
+	try {
+		// Спросим у юзера каким размеров карту ему хочется.
+		MSG msg;
+		BOOL ret;
+		LRESULT lres;
+		// Диалог -- IDD_NEW_MAP_DIALOG //
+		hDlg = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
+		assert(NULL != hDlg);
 
-	for (int i = 0; i < int(TTileType::Count); ++i )
-	{
-		LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileType_Names[i]);
-		assert(res == i);
-	}
-	lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
+		HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
+		assert(NULL != hWndComboBox);
 
-	ShowWindow(hDlg, SW_SHOW);
-	while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
-	{
-		if (!IsDialogMessage(hDlg, &msg)) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+		for (int i = 0; i < int(TTileType::Count); ++i)
+		{
+			LRESULT res = SendMessageA(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)TileType_Names[i]);
+			assert(res == i);
 		}
+		lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
+
+		std::wstring ExePath = GetExePatch();
+		SetDlgItemTextW(hDlg, IDC_STATIC_FullName, const_cast<LPCWSTR>(ExePath.c_str()));
+
+
+		ShowWindow(hDlg, SW_SHOW);
+		while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
+		{
+			if (!IsDialogMessage(hDlg, &msg)) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+		if (DialogResult != IDOK) {
+			DestroyWindow(hDlg);
+			hDlg = NULL;
+			return;
+		}
+		// Считаем из диалога пользовательский ввод.	
+		const int Dir_Len = 1024 * 4;
+		wchar_t FileName[Dir_Len] = { 0 };
+		wchar_t Dir[Dir_Len] = { 0 };
+		TMapParams Param;
+		assert(0 != GetDlgItemTextW(hDlg, IDC_EDIT_FILENAME,
+			FileName,
+			Dir_Len));
+		assert(0 != GetDlgItemTextW(hDlg, IDC_STATIC_FullName,
+			Dir,
+			Dir_Len));
+		assert(0 < wcslen(FileName));
+		assert(0 < wcslen(Dir));
+		Param.FileName = Dir;
+		if (!(Dir[wcslen(Dir) - 1] == L'\\' || Dir[wcslen(Dir) - 1] == L'/'))
+			Param.FileName += L'\\';
+		Param.FileName += FileName;
+		BOOL ok;
+		Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
+		assert(ok == TRUE);
+		assert(Param.w > 0);
+		assert(Param.w <= Max<ui16>());
+		Param.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
+		assert(ok == TRUE);
+		assert(Param.h > 0);
+		assert(Param.h <= Max<ui16>());
+		Param.PrevalentTileType = TileTypeFromInt((int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0));
+
+		DestroyWindow(hDlg);
+		hDlg = NULL;
+
+
+		//Param.h = 16;
+		//Param.w = 16;
+		//Param.PrevalentTileType = TileType::Graund;
+
+		This->mState->GotoMapEditor_CreateMap(Param);
+
+		for (int x = 0; x < Param.w; ++x)
+		{
+			This->mState->MapEditorState->TileMap->Set(x, 0, TTileType::Water);
+			This->mState->MapEditorState->TileMap->Set(x, Param.h - 1, TTileType::Water);
+		}
+		for (int y = 1; y < (Param.h - 1); ++y)
+		{
+			This->mState->MapEditorState->TileMap->Set(0, y, TTileType::Water);
+			This->mState->MapEditorState->TileMap->Set(Param.w - 1, y, TTileType::Water);
+		}
+		This->mState->MapEditorState->TileMap->Set(3, 3, TTileType::Water);
 	}
-	// Считаем из диалога пользовательский ввод.
-	std::wstring FileName(1024 * 4, L'\0');
-	std::wstring Dir(1024 * 4, L'\0');
-	TMapParams Param;
-	assert( 0 != GetDlgItemTextW(hDlg, IDC_EDIT_FILENAME,
-								const_cast<LPWSTR>(FileName.c_str()),
-								static_cast<int>(FileName.size())));
-	assert( 0 != GetDlgItemTextW(hDlg, IDC_STATIC_FullName,
-								const_cast<LPWSTR>(Dir.c_str()),
-								static_cast<int>(Dir.size())));
-	Param.FileName = Dir + L"\\" + FileName;
-	BOOL ok;
-	Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
-	assert(ok == TRUE);
-	assert(Param.w > 0);
-	assert(Param.w <= Max<ui16>());
-	Param.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
-	assert(ok == TRUE);
-	assert(Param.h > 0);
-	assert(Param.h <= Max<ui16>());
-	Param.PrevalentTileType = TileTypeFromInt( (int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0) );
-
-	DestroyWindow(hDlg);
-
-
-	//Param.h = 16;
-	//Param.w = 16;
-	//Param.PrevalentTileType = TileType::Graund;
-	
-	This.mState->GotoMapEditor_CreateMap(Param);
-	
-	for (int x = 0; x < Param.w; ++x)
+	catch (const TException &e)
 	{
-		This.mState->MapEditorState->TileMap->Set(x,0, TTileType::Water);
-		This.mState->MapEditorState->TileMap->Set(x, Param.h - 1, TTileType::Water);
+		if(hDlg)
+			DestroyWindow(hDlg);
+		MessageBoxW(Win.getSystemHandle(), e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
 	}
-	for (int y = 1; y < (Param.h - 1); ++y)
-	{
-		This.mState->MapEditorState->TileMap->Set(0,y, TTileType::Water);
-		This.mState->MapEditorState->TileMap->Set(Param.w - 1,y, TTileType::Water);
-	}
-	This.mState->MapEditorState->TileMap->Set(3,3, TTileType::Water);
 }
 
 
 
 void TMainMenuState::OnLoadMap(void *This_)
 {
-	TMainMenuState &This = *((TMainMenuState*)This_);
+	TMainMenuState *This = ((TMainMenuState*)This_);
 	
 	static const int FileName_BufSize = 4 * 1024;
 	wchar_t FileName[FileName_BufSize] = { 0 };

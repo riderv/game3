@@ -4,6 +4,19 @@
 #include "tile_map.h"
 
 
+void TTileMap::Set(int x, int y, TTileType TileType)
+{
+	if (mParam.PrevalentTileType == TileType)
+	{
+		auto i = mMap.find({x,y});
+		if (i != mMap.end())
+			mMap.erase(i);
+	}
+	else
+	{
+		mMap[{x, y}] = TileType;
+	}
+}
 
 TTileType TTileMap::TypeAt(int x, int y) const
 {
@@ -68,6 +81,21 @@ void TTileMap::Save(SQLite::TDB& db)
 			}
 		}
 	Transaction.Commit();
+	std::wstring fn = GetExePatch() + L"\\last_map_dir";
+	FILE * F = _wfopen(fn.c_str(), L"wt, ccs=UTF-16LE");
+	if (!F)
+		return;
+	struct TFClose { FILE *f;  ~TFClose() { fclose(f); } } FClose = { F };
+	auto key = L"last_map_dir=";
+	fwrite(key, sizeof(key[0]), wcslen(key), F);
+	std::wstring path = mParam.FileName;
+	size_t bslash_pos = path.find_last_of(L'\\');
+	if( bslash_pos != std::wstring::npos)
+		path.erase(bslash_pos, path.end() - path.begin());
+	fwrite(path.c_str(), sizeof(path[0]), path.size(), F);
+	wchar_t endline[1] = { L'\r\n' };
+	fwrite(endline, sizeof(endline[0]), 1, F);
+
 }
 
 void TTileMap::Load(SQLite::TDB& db)

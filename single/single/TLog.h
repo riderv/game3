@@ -4,6 +4,46 @@
 
 inline std::wstring LastErrStr();
 
+inline std::string Utf16ToAnsi(const std::wstring& msg)
+{
+	int nUserNameLen = WideCharToMultiByte(
+		CP_ACP, // ANSI Code Page
+		0, // No special handling of unmapped chars
+		msg.c_str(), // wide-character string to be converted
+		static_cast<int>(msg.size()),
+		NULL, 0, // No output buffer since we are calculating length
+		NULL, NULL); // Unrepresented char replacement - Use Default 
+
+	std::string s(nUserNameLen, '\0');
+	WideCharToMultiByte(CP_ACP, // ANSI Code Page
+		0, // No special handling of unmapped chars
+		msg.c_str(), // wide-character string to be converted
+		static_cast<int>(msg.size()),
+		const_cast<char*>(s.c_str()),
+		static_cast<int>(s.size()),
+		NULL, NULL); // Unrepresented char replacement - Use Default
+	return s;
+}
+
+inline std::wstring AnsiToUtf16(const std::string& msg)
+{
+	int Len = MultiByteToWideChar(
+		CP_ACP,
+		0,
+		msg.c_str(),
+		static_cast<int>(msg.size()),
+		0, 0);
+	std::wstring w(Len, L'\0');
+	MultiByteToWideChar(
+		CP_ACP,
+		0,
+		msg.c_str(),
+		static_cast<int>(msg.size()),
+		&w[0],
+		static_cast<int>(w.size())
+		);
+	return w;
+}
 
 struct TLog
 {
@@ -46,37 +86,21 @@ struct TLog
 	}
 	~TLog()
 	{
-		CloseHandle(HFile);
+		if (HFile) {
+			CloseHandle(HFile);
+			HFile = NULL;
+		}
 	}
 	TLog& operator() (const std::string& msg)
 	{
-		ULONG bytes;
-		if (0 == WriteFile(HFile, PVOID(msg.c_str()), (DWORD)msg.size(), &bytes, DWORD(NULL)))
-		{
-			MessageBoxW(0, (L"ERROR write log\n" + LastErrStr()).c_str(), L"error", MB_ICONERROR);
-		}
+		std::wstring w = AnsiToUtf16(msg);
+		operator()(w);
 		return *this;
 	}
 	TLog& operator()(const std::wstring& msg)
 	{
 		ULONG bytes;
-		int nUserNameLen = WideCharToMultiByte(
-			CP_ACP, // ANSI Code Page
-			0, // No special handling of unmapped chars
-			msg.c_str(), // wide-character string to be converted
-			static_cast<int>(msg.size()),
-			NULL, 0, // No output buffer since we are calculating length
-			NULL, NULL); // Unrepresented char replacement - Use Default 
-
-		std::string s(nUserNameLen, '\0');
-		WideCharToMultiByte(CP_ACP, // ANSI Code Page
-			0, // No special handling of unmapped chars
-			msg.c_str(), // wide-character string to be converted
-			static_cast<int>(msg.size()),
-			const_cast<char*>(s.c_str()),
-			static_cast<int>(s.size()),
-			NULL, NULL); // Unrepresented char replacement - Use Default
-		if (0 == WriteFile(HFile, PVOID(s.c_str()), (DWORD)s.size(), &bytes, DWORD(NULL)))
+		if (0 == WriteFile(HFile, PVOID(msg.c_str()), (DWORD)msg.size(), &bytes, DWORD(NULL)))
 		{
 			MessageBoxW(0, (L"ERROR write log\n" + LastErrStr()).c_str(), L"error", MB_ICONERROR);
 		}

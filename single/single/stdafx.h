@@ -21,8 +21,14 @@
 #include <memory.h>
 #include <tchar.h>
 #include <inttypes.h>
-
 #include <cassert>
+
+// crt
+#define CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
+
+#include <vld.h>
 
 // TODO: reference additional headers your program requires here
 #include <SFML/Window.hpp>
@@ -92,9 +98,9 @@ constexpr uint32_t ui32max()
 
 #define CHECK_RANGE(Val, Min, Max)\
 	if(Val < Min || Val > Max){\
-		std::stringstream s;\
-		s << "CHECK_RANGE(val:" << Val << ", Min:" << Min << ", Max:" << Max << " failed.";\
-		throw std::out_of_range(s.str()); };
+		std::wstringstream s;\
+		s << L"CHECK_RANGE(val:" << Val << L", Min:" << LMin << L", Max:" << Max << L" failed.";\
+		throw TException(s); };
 
 
 #define SQLITE_API __declspec(dllimport)
@@ -118,7 +124,7 @@ struct nonassignable
 };
 
 
-
+/*
 template<class Cont>
 class const_reverse_wrapper {
 	const Cont& container;
@@ -148,3 +154,4 @@ template<class Cont>
 reverse_wrapper<Cont> reverse(Cont& cont) {
 	return reverse_wrapper<Cont>(cont);
 }
+*/
