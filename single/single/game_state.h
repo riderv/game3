@@ -26,6 +26,8 @@ struct TGameState : IGameState, noncopyable
 
 	void TGameState::GotoMapEditor_CreateMap(const TMapParams &);
 	void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName);
+	void TGameState::GotoMainMenu();
+
 	union {
 		struct Prop_TMapEditorState: noncopyable {
 			TMapEditorState* operator->(){ return BASEHACK(TGameState, MapEditorState, this)->mMapEditorState; }

@@ -102,3 +102,8 @@ void TGameState::LoadBaseTileset()
 			throw TException(L"simple_tile_set.png not found");
 	}
 }
+
+void TGameState::GotoMainMenu()
+{
+	mCurrentState = mMainMenuState;
+}

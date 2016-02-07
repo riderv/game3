@@ -94,7 +94,9 @@ void TTileMap::Save(SQLite::TDB& db)
 		}
 	Transaction.Commit();
 	std::wstring fn = GetExePatch() + L"\\last_map_dir";
+#pragma warning(disable:4996)
 	FILE * F = _wfopen(fn.c_str(), L"wt, ccs=UTF-16LE");
+#pragma warning(default:4996)
 	if (!F)
 		return;
 	struct TFClose { FILE *f;  ~TFClose() { fclose(f); } } FClose = { F };

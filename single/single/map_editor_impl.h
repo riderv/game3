@@ -24,6 +24,18 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 		DefMenuItem.Font(GameState.Font).CharSize(10);
 
 		mMenu += TMenuItem(DefMenuItem)
+			.Text("F1) Exit to main menu.")
+			.Pos(x, y)
+			.OnKey(sf::Keyboard::F1,[](void*s)
+			{
+				auto t = (TMapEditorState*)s;
+				GameState.GotoMainMenu();
+			}
+
+		);
+		y += 15;
+		
+		mMenu += TMenuItem(DefMenuItem)
 			.Text("F5) Save")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
@@ -239,16 +251,32 @@ void TMapEditorState::DoOnLoad(void *This_)
 
 void TMapEditorState::LoadMap(const wchar_t* FileName)
 {
-	SQLite::TDB db;
-	db.Open(FileName);
-	mTileMap.Load(db);
-	mTileMap.mParam.FileName = FileName;
-	mCurrentBrush = mTileMap.mParam.DefaultTileType;
-	mTileSprite.setTexture(mTileMap.mTilesetTexture);
-	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
+	try {
+		SQLite::TDB db;
+		db.Open(FileName);
+		mTileMap.Load(db);
+		mTileMap.mParam.FileName = FileName;
+		mCurrentBrush = mTileMap.mParam.DefaultTileType;
+		mTileSprite.setTexture(mTileMap.mTilesetTexture);
+		mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 
-	UpdateView();
-
+		UpdateView();
+		return;
+	}
+	// TODO: сделать чтоли от одного предка?
+	catch (const SQLite::exception& e)
+	{
+		MessageBoxA(0, e.msg.c_str(), "Error loading map.", MB_ICONERROR);
+	}
+	catch (const SQLite::wexception& e)
+	{
+		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
+	}
+	catch (const TException& e)
+	{
+		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
+	}
+	GameState.GotoMainMenu();
 }
 
 void TMapEditorState::ITileMapImpl::Set(int x, int y, TTileType val)

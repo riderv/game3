@@ -105,7 +105,9 @@ static int __stdcall BrowseNotify(HWND hWnd, UINT iMessage, LPARAM wParam, LPARA
 		// в винде такая голованя боль.
 		// TODO ПЕРЕДЕЛАТЬ НА БД ИЛИ БИНАРНЫЙ ФАЙЛ
 		std::wstring fn = GetExePatch() + L"\\last_map_dir";
+#pragma warning(disable:4996)
 		FILE * F = _wfopen( fn.c_str(), L"rt, ccs=UTF-16LE");
+#pragma warning(default:4996)
 		if (!F)
 			return 1;
 		struct TFClose { FILE *f;  ~TFClose() { fclose(f); } } FClose = { F };
