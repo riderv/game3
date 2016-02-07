@@ -27,13 +27,13 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 			.Text("F5) Save")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
-		y += 30;
+		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("F6) Load")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::F6, &TMapEditorState::DoOnLoad);
-		y += 30;
+		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("~) Default tile brush")
@@ -43,9 +43,10 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
+					t->mCurrentBrush = t->mTileMap.mParam.PrevalentTileType;
 				}
 		);
-		y += 30;
+		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("1) Ground brush")
@@ -55,9 +56,10 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize});
+					t->mCurrentBrush = TTileType::Ground;
 				}
 		);
-		y += 30;
+		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("2) Water brush")
@@ -67,9 +69,10 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize });
+					t->mCurrentBrush = TTileType::Water;
 				}
 		);
-		y += 30;
+		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("3) Stones brush")
@@ -79,9 +82,10 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize });
+					t->mCurrentBrush = TTileType::Stones;
 				}
 		);
-		y += 30;
+		y += 15;
 	}
 	
 }
@@ -90,7 +94,7 @@ void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
 	mTileSprite.setTexture(mTileMap.mTilesetTexture);
-	
+	mCurrentBrush = mTileMap.mParam.PrevalentTileType;
 	UpdateView();
 	
 }
@@ -102,7 +106,23 @@ void TMapEditorState::PoolEvent(sf::Event & Event)
 	case sf::Event::EventType::KeyReleased:
 		mMenu.ProcessKey(Event.key.code);
 		break;
+	case sf::Event::EventType::MouseButtonReleased:
+		OnMouseClick(Event.mouseButton.x, Event.mouseButton.y);
+		break;
 	}
+}
+
+void TMapEditorState::OnMouseClick(int x, int y)
+{
+	sf::Vector2f worldPos = Win.mapPixelToCoords({ x,y }, mView);
+	int tx = int(worldPos.x / TilePxSize);
+	int ty = int(worldPos.y / TilePxSize);
+	tx -= mViewOffsetInTiles.x;
+	ty -= mViewOffsetInTiles.y;
+	TTileType tt = mTileMap.TypeAt(tx, ty);
+	//MessageBoxA(0, TileName(tt), "tile under cursor", MB_OK);
+	MessageBoxA(0, TileName(mCurrentBrush), "tile under cursor", MB_OK);
+	mTileMap.SafeSet(tx, ty, mCurrentBrush);
 }
 
 void TMapEditorState::Simulate()
@@ -171,7 +191,7 @@ void TMapEditorState::Draw()
 	Win.setView(v);
 	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
 	Win.draw(mCursorSprite);
-	//mMenu.Draw(Win);
+	mMenu.Draw(Win);
 }
 void TMapEditorState::UpdateView()
 {
@@ -180,10 +200,11 @@ void TMapEditorState::UpdateView()
 	// mView должен быть пропорционален экрану
 	// но в два раза крупнее (впикселах)
 	mView.reset( sf::FloatRect(0.0f, 0.0f, float(ws.x)/2, float(ws.y)/2) );
-	
+	mView.setViewport({ 1.0f/ws.x*50 ,0.0f,1.0f,1.0f });
 	// записать сколько тайлов влезает во View и отрисовывать только влезающие
-	mViewSizeInTiles.x = int(mView.getSize().x / TilePxSize);
-	mViewSizeInTiles.y = int(mView.getSize().y / TilePxSize);
+	auto vs = mView.getSize();
+	mViewSizeInTiles.x = int(vs.x / TilePxSize);
+	mViewSizeInTiles.y = int(vs.y / TilePxSize);
 	
 }
 void TMapEditorState::OnResize() { UpdateView(); }
@@ -204,7 +225,7 @@ void TMapEditorState::DoOnLoad(void *This_)
 //	This.mTileMap.Load(This.mTileMap.mParam.FileName);
 	SQLite::TDB db;
 	db.Open(This.mTileMap.mParam.FileName.c_str());
-	This.mTileMap.Load(db);
+	This.mTileMap.Load(db);	
 }
 
 void TMapEditorState::LoadMap(const wchar_t* FileName)
@@ -213,7 +234,8 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 	db.Open(FileName);
 	mTileMap.Load(db);
 	mTileMap.mParam.FileName = FileName;
-	
+	mCurrentBrush = mTileMap.mParam.PrevalentTileType;
+
 	mTileSprite.setTexture(mTileMap.mTilesetTexture);
 
 	UpdateView();

@@ -304,5 +304,4 @@ void TMainMenuState::OnLoadMap(void *This_)
 		GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
 		Win.setTitle(w.c_str());
 	}
-
 }

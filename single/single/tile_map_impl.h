@@ -4,8 +4,20 @@
 #include "tile_map.h"
 
 
+void TTileMap::SafeSet(int x, int y, TTileType TileType)
+{
+	if (x < 0 || x >= mParam.w)
+		return;
+	if (y < 0 || y >= mParam.h)
+		return;
+
+	Set(x, y, TileType);
+}
 void TTileMap::Set(int x, int y, TTileType TileType)
 {
+	assert(x >= 0 && x < mParam.w);
+	assert(y >= 0 && y < mParam.h);
+	
 	if (mParam.PrevalentTileType == TileType)
 	{
 		auto i = mMap.find({x,y});
@@ -93,7 +105,7 @@ void TTileMap::Save(SQLite::TDB& db)
 	if( bslash_pos != std::wstring::npos)
 		path.erase(bslash_pos, path.end() - path.begin());
 	fwrite(path.c_str(), sizeof(path[0]), path.size(), F);
-	wchar_t endline[1] = { L'\r\n' };
+	wchar_t endline[1] = { L'\n' };
 	fwrite(endline, sizeof(endline[0]), 1, F);
 
 }
@@ -101,7 +113,7 @@ void TTileMap::Save(SQLite::TDB& db)
 void TTileMap::Load(SQLite::TDB& db)
 {
 	auto Transaction = db.BeginTransaction();
-	TMapParams p;
+	TMapParams tmpParam = mParam;
 	bool IsNull; // todo: null check
 	// read map from database
 	{
@@ -110,14 +122,14 @@ void TTileMap::Load(SQLite::TDB& db)
 		{
 			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return zero.");
 		}
-		Stmt.Get(0, p.w, IsNull); // WTF? 0-based unlike param-binding
+		Stmt.Get(0, tmpParam.w, IsNull); // WTF? 0-based unlike param-binding
 		assert(IsNull == false);
-		Stmt.Get(1, p.h, IsNull);
+		Stmt.Get(1, tmpParam.h, IsNull);
 		assert(IsNull == false);
 		ui16 Type;
 		Stmt.Get(2, Type, IsNull);
 		assert(IsNull == false);
-		p.PrevalentTileType = TTileType(Type);
+		tmpParam.PrevalentTileType = TTileType(Type);
 		if (SQLITE_DONE != Stmt.Step())
 		{
 			db.Raise("TTileMap::Load, 'select w,h,PrevalentTileType from map' failed. One row must present. Query return many.");
@@ -148,7 +160,7 @@ void TTileMap::Load(SQLite::TDB& db)
 		assert(ret == SQLITE_DONE);
 	}
 
-	mParam = p;
+	mParam = tmpParam;
 	mMap.swap(NewMap);
 
 	Transaction.Commit();

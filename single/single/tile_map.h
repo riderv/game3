@@ -34,6 +34,7 @@ struct TTileMap
 	
 	TTileType	TTileMap::TypeAt(int x, int y) const;
 	void		TTileMap::Set(int x, int y, TTileType TileType);
+	void		TTileMap::SafeSet(int x, int y, TTileType TileType);
 
 	void	 TTileMap::Reset(const TMapParams& MapParams);
 
@@ -41,10 +42,9 @@ struct TTileMap
 	void	 TTileMap::Load(SQLite::TDB& db);
 
 	TMapParams mParam;
-
-	typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
-	Index2TileType mMap;
-
 	sf::Texture mTilesetTexture;
-		
+
+private:
+	typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
+	Index2TileType mMap;		
 };

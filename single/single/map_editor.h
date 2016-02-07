@@ -22,6 +22,7 @@ struct TMapEditorState : IGameState, noncopyable
 	// когда в редакторе карты жмём f5/f6
 	static void TMapEditorState::DoOnSave(void *This_);
 	static void TMapEditorState::DoOnLoad(void *This_);
+	void TMapEditorState::OnMouseClick(int x, int y);
 
 	// когда в главном меню выбираем LoadMap
 	void TMapEditorState::LoadMap(const wchar_t* FileName);
@@ -43,7 +44,8 @@ private:
 	sf::Clock mKeyDelayClock;
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
-	sf::Sprite mCursorSprite;	
+	sf::Sprite mCursorSprite;
+	TTileType mCurrentBrush = mTileMap.mParam.PrevalentTileType;
 
 	struct ITileMapImpl: ITileMap
 	{
