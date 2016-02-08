@@ -16,6 +16,13 @@ TLog Log;
 
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
+	union{
+		int i;
+		float f;
+	}u;
+	u.i = 123;
+	u.f = 123.123f;
+
 	gHinstance = hInstance;
 	INITCOMMONCONTROLSEX i = { 0 };
 	i.dwSize = sizeof(i);

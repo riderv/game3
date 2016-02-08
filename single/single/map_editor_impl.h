@@ -29,6 +29,7 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 			.OnKey(sf::Keyboard::F1,[](void*s)
 			{
 				auto t = (TMapEditorState*)s;
+				t->mTileMap = TTileMap();
 				GameState.GotoMainMenu();
 			}
 
@@ -276,6 +277,7 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 	{
 		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
 	}
+	mTileMap = TTileMap();
 	GameState.GotoMainMenu();
 }
 
