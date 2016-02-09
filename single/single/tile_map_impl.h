@@ -6,19 +6,19 @@
 
 void TTileMap::SafeSet(int x, int y, TTileType TileType)
 {
-	if (x < 0 || x >= mParam.w)
+	if (x < 0 || x >= Param.w)
 		return;
-	if (y < 0 || y >= mParam.h)
+	if (y < 0 || y >= Param.h)
 		return;
 
 	Set(x, y, TileType);
 }
 void TTileMap::Set(int x, int y, TTileType TileType)
 {
-	assert(x >= 0 && x < mParam.w);
-	assert(y >= 0 && y < mParam.h);
+	assert(x >= 0 && x < Param.w);
+	assert(y >= 0 && y < Param.h);
 	
-	if (mParam.DefaultTileType == TileType)
+	if (Param.DefaultTileType == TileType)
 	{
 		auto i = mMap.find({x,y});
 		if (i != mMap.end())
@@ -34,7 +34,7 @@ TTileType TTileMap::TypeAt(int x, int y) const
 {
 	if (x < 0 || y < 0)
 		return TTileType::Unknown;
-	if ( x >= mParam.w || y >= mParam.h)
+	if ( x >= Param.w || y >= Param.h)
 		return TTileType::Unknown;
 
 	TCoord2Int key;
@@ -42,14 +42,14 @@ TTileType TTileMap::TypeAt(int x, int y) const
 	key.y = ui16(y);
 	auto i = mMap.find(key);
 	if( i == mMap.end() )
-		return mParam.DefaultTileType;
+		return Param.DefaultTileType;
 
 	return i->second;
 }
 
 void TTileMap::Reset(const TMapParams& MapParams)
 {
-	mParam = MapParams;
+	Param = MapParams;
 	mMap.clear();
 }
 
@@ -65,9 +65,9 @@ void TTileMap::Save(SQLite::TDB& db)
 	);
 	{
 		auto St = db.Prepare("INSERT INTO map VALUES(?,?,?)");
-		St.Bind(1, mParam.w);
-		St.Bind(2, mParam.h);
-		St.Bind(3, mParam.DefaultTileType);
+		St.Bind(1, Param.w);
+		St.Bind(2, Param.h);
+		St.Bind(3, Param.DefaultTileType);
 		if (St.Step() != SQLITE_DONE)
 			db.Raise("INSERT INTO map VALUES(?,?,?); failed");
 
@@ -102,7 +102,7 @@ void TTileMap::Save(SQLite::TDB& db)
 	struct TFClose { FILE *f;  ~TFClose() { fclose(f); } } FClose = { F };
 	auto key = L"last_map_dir=";
 	fwrite(key, sizeof(key[0]), wcslen(key), F);
-	std::wstring path = mParam.FileName;
+	std::wstring path = Param.FileName;
 	size_t bslash_pos = path.find_last_of(L'\\');
 	if( bslash_pos != std::wstring::npos)
 		path.erase(bslash_pos, path.end() - path.begin());
@@ -115,7 +115,7 @@ void TTileMap::Save(SQLite::TDB& db)
 void TTileMap::Load(SQLite::TDB& db)
 {
 	auto Transaction = db.BeginTransaction();
-	TMapParams tmpParam = mParam;
+	TMapParams tmpParam = Param;
 	bool IsNull; // todo: null check
 	// read map from database
 	{
@@ -162,7 +162,7 @@ void TTileMap::Load(SQLite::TDB& db)
 		assert(ret == SQLITE_DONE);
 	}
 
-	mParam = tmpParam;
+	Param = tmpParam;
 	mMap.swap(NewMap);
 
 	Transaction.Commit();

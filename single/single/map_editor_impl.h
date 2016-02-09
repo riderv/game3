@@ -9,10 +9,10 @@
 TMapEditorState::TMapEditorState(TGameState* BaseState)
 	: mState(BaseState)
 {
-	mTileMap.mTilesetTexture = GameState.GetTilesetTexture();
+	mTileMap.TilesetTexture = GameState.TilesetTexture;
 	UpdateView();	
 	mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
-	mCursorSprite.setTexture(GameState.GetTilesetTexture());
+	mCursorSprite.setTexture(GameState.TilesetTexture);
 	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
 	mCursorSprite.setOrigin(TilePxSize / 2, TilePxSize / 2);
 	// init menu
@@ -56,7 +56,7 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({ t->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize });
-					t->mCurrentBrush = t->mTileMap.mParam.DefaultTileType;
+					t->mCurrentBrush = t->mTileMap.Param.DefaultTileType;
 				}
 		);
 		y += 15;
@@ -104,11 +104,16 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 	mLastAction.setCharacterSize(20);
 }
 
+TMapEditorState::~TMapEditorState()
+{
+	// TODO надо ли выгружать текстуры, или SFML само?..
+}
+
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
-	mTileSprite.setTexture(mTileMap.mTilesetTexture);
-	mCurrentBrush = mTileMap.mParam.DefaultTileType;
+	mTileSprite.setTexture(mTileMap.TilesetTexture);
+	mCurrentBrush = mTileMap.Param.DefaultTileType;
 	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 	UpdateView();
 	
@@ -164,7 +169,7 @@ void TMapEditorState::Simulate()
 		{
 			if (mViewOffsetInTiles.x < 0)
 			{
-				if (abs(mViewOffsetInTiles.x) < (mTileMap.mParam.w - 1))
+				if (abs(mViewOffsetInTiles.x) < (mTileMap.Param.w - 1))
 					mViewOffsetInTiles.x--;
 			}
 			else
@@ -174,7 +179,7 @@ void TMapEditorState::Simulate()
 		{
 			if (mViewOffsetInTiles.y < 0)
 			{
-				if (abs(mViewOffsetInTiles.y) < (mTileMap.mParam.h - 1))
+				if (abs(mViewOffsetInTiles.y) < (mTileMap.Param.h - 1))
 					mViewOffsetInTiles.y--;
 			}
 			else
@@ -234,9 +239,9 @@ void TMapEditorState::OnResize() { UpdateView(); }
 void TMapEditorState::DoOnSave(void *This_)
 {
 	TMapEditorState& This = *((TMapEditorState*)This_);
-//	This.mTileMap.Save(This.mTileMap.mParam.FileName);
+//	This.mTileMap.Save(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.mParam.FileName.c_str() );
+	db.Open(This.mTileMap.Param.FileName.c_str() );
 	This.mTileMap.Save(db);
 
 }
@@ -244,9 +249,9 @@ void TMapEditorState::DoOnSave(void *This_)
 void TMapEditorState::DoOnLoad(void *This_)
 {
 	TMapEditorState& This = *((TMapEditorState*)This_);
-//	This.mTileMap.Load(This.mTileMap.mParam.FileName);
+//	This.mTileMap.Load(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.mParam.FileName.c_str());
+	db.Open(This.mTileMap.Param.FileName.c_str());
 	This.mTileMap.Load(db);	
 }
 
@@ -256,9 +261,9 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 		SQLite::TDB db;
 		db.Open(FileName);
 		mTileMap.Load(db);
-		mTileMap.mParam.FileName = FileName;
-		mCurrentBrush = mTileMap.mParam.DefaultTileType;
-		mTileSprite.setTexture(mTileMap.mTilesetTexture);
+		mTileMap.Param.FileName = FileName;
+		mCurrentBrush = mTileMap.Param.DefaultTileType;
+		mTileSprite.setTexture(mTileMap.TilesetTexture);
 		mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 
 		UpdateView();

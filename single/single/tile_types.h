@@ -2,7 +2,7 @@
 
 #include "exception.h"
 
-static const int TilePxSize = 20;
+static const int TilePxSize = 16;
 // todo: заменить все int на int32
 enum TTileType : ui16
 { Unknown,   Ground,   Water, Stones,  Count };

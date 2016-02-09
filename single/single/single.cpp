@@ -8,6 +8,7 @@
 #include "main_window.h"
 #include "tile_map.h"
 #include "game_state.h"
+#include "play_state.h"
 
 void MainLoop();
 
@@ -16,13 +17,6 @@ TLog Log;
 
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
-	union{
-		int i;
-		float f;
-	}u;
-	u.i = 123;
-	u.f = 123.123f;
-
 	gHinstance = hInstance;
 	INITCOMMONCONTROLSEX i = { 0 };
 	i.dwSize = sizeof(i);
@@ -43,3 +37,4 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCm
 #include "game_state_impl.h"
 #include "map_editor_impl.h"
 #include "tile_map_impl.h"
+#include "play_state_impl.h"

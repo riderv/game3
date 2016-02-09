@@ -11,6 +11,7 @@ struct ITileMap
 struct TMapEditorState : IGameState, noncopyable
 {
 		 TMapEditorState::TMapEditorState(TGameState* BaseState);
+		 TMapEditorState::~TMapEditorState() override;
 	void TMapEditorState::PoolEvent(sf::Event &) override;
 	void TMapEditorState::Simulate() override;
 	void TMapEditorState::Draw() override;
@@ -45,7 +46,7 @@ private:
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
 	sf::Sprite mCursorSprite;
-	TTileType mCurrentBrush = mTileMap.mParam.DefaultTileType;
+	TTileType mCurrentBrush = mTileMap.Param.DefaultTileType;
 
 	struct ITileMapImpl: ITileMap
 	{

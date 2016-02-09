@@ -44,7 +44,7 @@ inline void TMenu::ProcessKey(sf::Keyboard::Key Key)
 inline void TMenu::Draw(sf::RenderTarget& Target)
 {
 	for (auto mi : items)
-		Target.draw(mi.text);
+		Target.draw(mi.mText);
 }
 //----------------------------
 //			TMainMenuState
@@ -65,13 +65,16 @@ TMainMenuState::TMainMenuState(TGameState* pGameState)
 		.Font(GameState.Font).Pos(x, y).CharSize(30);
 	y += 60;
 
-	mMenu += TMenuItem().Text("1) Generate and edit map.")
+	mMenu += TMenuItem().Text("1) Generate and edit map...")
 		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);
 	y += 30;
 
-	mMenu += TMenuItem().Text("2) Load map...")
+	mMenu += TMenuItem().Text("2) Load map and edit...")
 		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);
-
+	
+	y += 30;
+	mMenu += TMenuItem().Text("3) Load map and play.")
+		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num3, &TMainMenuState::OnLoadAndPlay);
 
 }
 
@@ -270,7 +273,11 @@ void TMainMenuState::OnGenMap(void *This_)
 	{
 		if(hDlg)
 			DestroyWindow(hDlg);
-		MessageBoxW(Win.getSystemHandle(), e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
+		MessageBoxW(0, e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
+	}
+	catch (...)
+	{
+		MessageBoxA(0, "TMainMenuState::OnGenMap", "Unknown exception", MB_ICONERROR);
 	}
 }
 
@@ -278,32 +285,85 @@ void TMainMenuState::OnGenMap(void *This_)
 
 void TMainMenuState::OnLoadMap(void *This_)
 {
-	TMainMenuState *This = ((TMainMenuState*)This_);
-	
-	static const int FileName_BufSize = 4 * 1024;
-	wchar_t FileName[FileName_BufSize] = { 0 };
-	wchar_t FilePath[FileName_BufSize] = { 0 };
-	int PathLen = GetModuleFileNameW(gHinstance, FilePath, FileName_BufSize);
-	if (int er = GetLastError())
+	try {
+		TMainMenuState *This = ((TMainMenuState*)This_);
+
+		static const int FileName_BufSize = 4 * 1024;
+		wchar_t FileName[FileName_BufSize] = { 0 };
+		wchar_t FilePath[FileName_BufSize] = { 0 };
+		int PathLen = GetModuleFileNameW(gHinstance, FilePath, FileName_BufSize);
+		if (int er = GetLastError())
+		{
+			ShowLastErr(er);
+			return;
+		}
+		// Ёх, где же ты удобна€ VCL
+		*wcsrchr(FilePath, L'\\') = L'\0';
+
+		OPENFILENAMEW ofn = { 0 };
+		ofn.lStructSize = sizeof(ofn);
+		ofn.lpstrFile = FileName;
+		ofn.nMaxFile = FileName_BufSize;
+		ofn.lpstrInitialDir = FilePath;
+
+		if (GetOpenFileNameW(&ofn))
+		{
+			std::wstring w(1024, L'\0');
+			GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
+			Win.setTitle("Loading map...");
+			GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
+			Win.setTitle(w.c_str());
+		}
+	}
+	catch (const TException &e)
 	{
-		ShowLastErr(er);
+		MessageBoxW(0, e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
+	}
+	catch (...)
+	{
+		MessageBoxA(0, "TMainMenuState::OnLoadMap", "Unknown exception", MB_ICONERROR);
+	}
+}
+
+void TMainMenuState::OnLoadAndPlay(void *This_)
+{
+	TMainMenuState *This = ((TMainMenuState*)This_);
+	try {
+		static const int FileName_BufSize = 4 * 1024;
+		wchar_t FileName[FileName_BufSize] = { 0 };
+		wchar_t FilePath[FileName_BufSize] = { 0 };
+		int PathLen = GetModuleFileNameW(gHinstance, FilePath, FileName_BufSize);
+		if (int er = GetLastError())
+		{
+			ShowLastErr(er);
+			return;
+		}
+		// Ёх, где же ты удобна€ VCL
+		*wcsrchr(FilePath, L'\\') = L'\0';
+
+		OPENFILENAMEW ofn = { 0 };
+		ofn.lStructSize = sizeof(ofn);
+		ofn.lpstrFile = FileName;
+		ofn.nMaxFile = FileName_BufSize;
+		ofn.lpstrInitialDir = FilePath;
+
+		if (GetOpenFileNameW(&ofn))
+		{
+			std::wstring w(1024, L'\0');
+			GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
+			Win.setTitle("Loading map for playing...");
+			GameState.GotoPlay_LoadMap(ofn.lpstrFile);
+			Win.setTitle(w.c_str());
+		}
 		return;
 	}
-	// Ёх, где же ты удобна€ VCL
-	*wcsrchr(FilePath, L'\\') = L'\0';
-	
-	OPENFILENAMEW ofn = { 0 };
-	ofn.lStructSize = sizeof(ofn);
-	ofn.lpstrFile = FileName;
-	ofn.nMaxFile = FileName_BufSize;
-	ofn.lpstrInitialDir = FilePath;
-
-	if (GetOpenFileNameW(&ofn))
+	catch (const TException& E)
 	{
-		std::wstring w(1024, L'\0');
-		GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
-		Win.setTitle("Loading map...");
-		GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
-		Win.setTitle(w.c_str());
+		MessageBoxW(0, E.msg.c_str(), L"Error: TMainMenuState::OnLoadAndPlay", MB_ICONERROR);
 	}
+	catch (...)
+	{
+		MessageBoxA(0, "TMainMenuState::OnLoadAndPlay", "Unknown exception", MB_ICONERROR);
+	}
+	GameState.GotoMainMenu();
 }

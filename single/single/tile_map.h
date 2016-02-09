@@ -41,8 +41,8 @@ struct TTileMap
 	void	 TTileMap::Save(SQLite::TDB& db);
 	void	 TTileMap::Load(SQLite::TDB& db);
 
-	TMapParams mParam;
-	sf::Texture mTilesetTexture;
+	TMapParams Param;
+	sf::Texture TilesetTexture;
 
 private:
 	typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;

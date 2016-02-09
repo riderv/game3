@@ -20,6 +20,8 @@ TGameState::~TGameState()
 {
 	delete mMainMenuState;
 	delete mMapEditorState;
+	delete mPlayState;
+
 	if (mFontBuf) {
 		UnmapViewOfFile(mFontBuf);
 		mFontBuf = 0;
@@ -95,15 +97,25 @@ void TGameState::LoadBaseTileset()
 {
 	if (mTilesetBuf == nullptr)
 	{
-		std::wstring fn = GetExePatch() + L"/res/simple_tile_set.png";
+		std::wstring fn = GetExePatch() + L"/res/simple_tile_set_16x16a24.png";
 		auto res = MapFile(fn);
 		mTilesetBuf = res.first;
 		if (!mTilesetTexture.loadFromMemory(res.first, res.second)) //
-			throw TException(L"simple_tile_set.png not found");
+			throw TException(L"simple_tile_set_16x16a24.png not found");
 	}
 }
 
 void TGameState::GotoMainMenu()
 {
 	mCurrentState = mMainMenuState;
+}
+
+void TGameState::GotoPlay_LoadMap(const wchar_t* FileName)
+{
+	if (mPlayState == nullptr)
+	{
+		mPlayState = new TPlayState();
+	}
+	mCurrentState = mPlayState;
+	mPlayState->LoadAndPlay(FileName);
 }

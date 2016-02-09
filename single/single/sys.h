@@ -72,7 +72,7 @@ std::pair<void*, size_t> MapFile(const std::wstring& FileName)
 	hFile = CreateFileW(FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
 	if (INVALID_HANDLE_VALUE == hFile)
 	{
-		std::wstring erm = L"LoadFont,CreateFile failed. " + LastErrStr();
+		std::wstring erm = L"MapFile,CreateFile failed. " + LastErrStr();
 		Log(erm);
 		throw TException(erm);
 	}

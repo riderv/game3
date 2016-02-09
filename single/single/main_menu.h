@@ -7,15 +7,16 @@
 
 struct TMenuItem
 {
-	sf::Text text;
-	TMenuItem& Text(const char* menu_text)		{ text.setString(menu_text);	return *this; }
-	TMenuItem& Text(const wchar_t* menu_text)	{ text.setString(menu_text);	return *this; }
-	TMenuItem& Font(const sf::Font &Font)				{ text.setFont(Font);			return *this; }
-	TMenuItem& CharSize(unsigned int sz)		{ text.setCharacterSize(sz);	return *this; }
-	TMenuItem& Pos(float x, float y)			{ text.setPosition(x, y);		return *this; }
-
+	sf::Text mText;
 	sf::Keyboard::Key Key = sf::Keyboard::Unknown;
 	void(*callback)(void*object) = nullptr;
+
+	TMenuItem& Text(const char* menu_text)		{ mText.setString(menu_text);	return *this; }
+	TMenuItem& Text(const wchar_t* menu_text)	{ mText.setString(menu_text);	return *this; }
+	TMenuItem& Font(const sf::Font &Font)		{ mText.setFont(Font);			return *this; }
+	TMenuItem& CharSize(unsigned int sz)		{ mText.setCharacterSize(sz);	return *this; }
+	TMenuItem& Pos(float x, float y)			{ mText.setPosition(x, y);		return *this; }
+
 	inline TMenuItem& OnKey(sf::Keyboard::Key Key, void(*callback_ptr)(void* object));
 	
 	inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object);
@@ -46,17 +47,19 @@ struct TMainMenuState : IGameState, noncopyable
 {
 	TMainMenuState::TMainMenuState(TGameState* pGameState);
 	TMainMenuState::TMainMenuState(const TMainMenuState&) = delete;
-	TMainMenuState::~TMainMenuState();
+	TMainMenuState::~TMainMenuState() override;
 
 	void TMainMenuState::PoolEvent(sf::Event &) override;
 	void TMainMenuState::Draw() override;
 	void TMainMenuState::OnResize() override;
+	void TMainMenuState::Simulate() override {}
 	
 	enum { enCaption, enGenNewMap, enLoadMap,		enCount };
 	TMenu mMenu;
 
-	static void TMainMenuState::OnGenMap(void* This);
-	static void TMainMenuState::OnLoadMap(void* This);
+	static void TMainMenuState::OnGenMap(void* This_);
+	static void TMainMenuState::OnLoadMap(void* This_);
+	static void TMainMenuState::OnLoadAndPlay(void *This_);
 private:
 	TGameState *mState = nullptr;
 };

@@ -28,7 +28,7 @@
 //#include <stdlib.h>
 //#include <crtdbg.h>
 
-#include <vld.h>
+#include <vld.h> // memory leak detector
 
 // TODO: reference additional headers your program requires here
 #include <SFML/Window.hpp>
