@@ -62,19 +62,19 @@ TMainMenuState::TMainMenuState(TGameState* pGameState)
 	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
 
 	mMenu += TMenuItem().Text(L"Бродилка")
-		.Font(GameState.Font).Pos(x, y).CharSize(30);
+		.Font(GameState.mFont).Pos(x, y).CharSize(30);
 	y += 60;
 
 	mMenu += TMenuItem().Text("1) Generate and edit map...")
-		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);
 	y += 30;
 
 	mMenu += TMenuItem().Text("2) Load map and edit...")
-		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);
 	
 	y += 30;
 	mMenu += TMenuItem().Text("3) Load map and play.")
-		.Font(GameState.Font).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num3, &TMainMenuState::OnLoadAndPlay);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num3, &TMainMenuState::OnLoadAndPlay);
 
 }
 
@@ -259,15 +259,15 @@ void TMainMenuState::OnGenMap(void *This_)
 
 		for (int x = 0; x < Param.w; ++x)
 		{
-			This->mState->MapEditorState->TileMap->Set(x, 0, TTileType::Water);
-			This->mState->MapEditorState->TileMap->Set(x, Param.h - 1, TTileType::Water);
+			This->mState->mMapEditorState->TileMap().Set(x, 0, TTileType::Water);
+			This->mState->mMapEditorState->TileMap().Set(x, Param.h - 1, TTileType::Water);
 		}
 		for (int y = 1; y < (Param.h - 1); ++y)
 		{
-			This->mState->MapEditorState->TileMap->Set(0, y, TTileType::Water);
-			This->mState->MapEditorState->TileMap->Set(Param.w - 1, y, TTileType::Water);
+			This->mState->mMapEditorState->TileMap().Set(0, y, TTileType::Water);
+			This->mState->mMapEditorState->TileMap().Set(Param.w - 1, y, TTileType::Water);
 		}
-		This->mState->MapEditorState->TileMap->Set(3, 3, TTileType::Water);
+		This->mState->mMapEditorState->TileMap().Set(3, 3, TTileType::Water);
 	}
 	catch (const TException &e)
 	{

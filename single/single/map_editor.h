@@ -28,11 +28,8 @@ struct TMapEditorState : IGameState, noncopyable
 	// когда в главном меню выбираем LoadMap
 	void TMapEditorState::LoadMap(const wchar_t* FileName);
 
-	union {
-		struct Prop_TileMap: noncopyable {
-			ITileMap* operator->() { return &BASEHACK(TMapEditorState, TileMap, this)->miTileMap; }
-		}TileMap;
-	};
+	ITileMap& TileMap() { return miTileMap; }
+	
 private:
 	TGameState *mState = nullptr;
 	TTileMap mTileMap;
@@ -46,7 +43,7 @@ private:
 	enum { enMenuSafe, enMenuLoad, enMenuCount };
 	TMenu mMenu;
 	sf::Sprite mCursorSprite;
-	TTileType mCurrentBrush = mTileMap.Param.DefaultTileType;
+	TTileType mCurrentBrush = mTileMap.mParam.DefaultTileType;
 
 	struct ITileMapImpl: ITileMap
 	{

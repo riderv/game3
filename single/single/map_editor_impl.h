@@ -9,10 +9,10 @@
 TMapEditorState::TMapEditorState(TGameState* BaseState)
 	: mState(BaseState)
 {
-	mTileMap.TilesetTexture = GameState.TilesetTexture;
+	mTileMap.mTilesetTexture = GameState.mTilesetTexture;
 	UpdateView();	
 	mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
-	mCursorSprite.setTexture(GameState.TilesetTexture);
+	mCursorSprite.setTexture(GameState.mTilesetTexture);
 	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
 	mCursorSprite.setOrigin(TilePxSize / 2, TilePxSize / 2);
 	// init menu
@@ -21,7 +21,7 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 		mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
 
 		TMenuItem DefMenuItem;
-		DefMenuItem.Font(GameState.Font).CharSize(10);
+		DefMenuItem.Font(GameState.mFont).CharSize(10);
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("F1) Exit to main menu.")
@@ -56,7 +56,7 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 				{
 					auto t = ((TMapEditorState*)s);
 					t->mCursorSprite.setTextureRect({ t->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize });
-					t->mCurrentBrush = t->mTileMap.Param.DefaultTileType;
+					t->mCurrentBrush = t->mTileMap.mParam.DefaultTileType;
 				}
 		);
 		y += 15;
@@ -100,7 +100,7 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 		);
 		y += 15;
 	}
-	mLastAction.setFont(GameState.Font);
+	mLastAction.setFont(GameState.mFont);
 	mLastAction.setCharacterSize(20);
 }
 
@@ -112,8 +112,8 @@ TMapEditorState::~TMapEditorState()
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
-	mTileSprite.setTexture(mTileMap.TilesetTexture);
-	mCurrentBrush = mTileMap.Param.DefaultTileType;
+	mTileSprite.setTexture(mTileMap.mTilesetTexture);
+	mCurrentBrush = mTileMap.mParam.DefaultTileType;
 	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 	UpdateView();
 	
@@ -169,7 +169,7 @@ void TMapEditorState::Simulate()
 		{
 			if (mViewOffsetInTiles.x < 0)
 			{
-				if (abs(mViewOffsetInTiles.x) < (mTileMap.Param.w - 1))
+				if (abs(mViewOffsetInTiles.x) < (mTileMap.mParam.w - 1))
 					mViewOffsetInTiles.x--;
 			}
 			else
@@ -179,7 +179,7 @@ void TMapEditorState::Simulate()
 		{
 			if (mViewOffsetInTiles.y < 0)
 			{
-				if (abs(mViewOffsetInTiles.y) < (mTileMap.Param.h - 1))
+				if (abs(mViewOffsetInTiles.y) < (mTileMap.mParam.h - 1))
 					mViewOffsetInTiles.y--;
 			}
 			else
@@ -241,7 +241,7 @@ void TMapEditorState::DoOnSave(void *This_)
 	TMapEditorState& This = *((TMapEditorState*)This_);
 //	This.mTileMap.Save(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.Param.FileName.c_str() );
+	db.Open(This.mTileMap.mParam.FileName.c_str() );
 	This.mTileMap.Save(db);
 
 }
@@ -251,7 +251,7 @@ void TMapEditorState::DoOnLoad(void *This_)
 	TMapEditorState& This = *((TMapEditorState*)This_);
 //	This.mTileMap.Load(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.Param.FileName.c_str());
+	db.Open(This.mTileMap.mParam.FileName.c_str());
 	This.mTileMap.Load(db);	
 }
 
@@ -261,9 +261,9 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 		SQLite::TDB db;
 		db.Open(FileName);
 		mTileMap.Load(db);
-		mTileMap.Param.FileName = FileName;
-		mCurrentBrush = mTileMap.Param.DefaultTileType;
-		mTileSprite.setTexture(mTileMap.TilesetTexture);
+		mTileMap.mParam.FileName = FileName;
+		mCurrentBrush = mTileMap.mParam.DefaultTileType;
+		mTileSprite.setTexture(mTileMap.mTilesetTexture);
 		mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 
 		UpdateView();
