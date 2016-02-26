@@ -14,6 +14,12 @@
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "ole32.lib")
 
+#ifdef _DEBUG
+   #pragma comment(lib, "sfml-audio-d.lib")
+#else
+   #pragma comment(lib, "sfml-audio.lib")
+#endif
+
 
 // C RunTime Header Files
 #include <stdlib.h>
@@ -44,6 +50,7 @@
 #include <fstream>  
 #include <sstream>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <functional>
 
@@ -155,3 +162,4 @@ reverse_wrapper<Cont> reverse(Cont& cont) {
 	return reverse_wrapper<Cont>(cont);
 }
 */
+

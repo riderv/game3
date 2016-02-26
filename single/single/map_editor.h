@@ -21,8 +21,13 @@ struct TMapEditorState : IGameState, noncopyable
 	void TMapEditorState::UpdateView();
 
 	// когда в редакторе карты жмём f5/f6
-	static void TMapEditorState::DoOnSave(void *This_);
-	static void TMapEditorState::DoOnLoad(void *This_);
+	static void TMapEditorState::DoOnSave(TMapEditorState *This);
+	static void TMapEditorState::DoOnLoad(TMapEditorState *This);
+	static void TMapEditorState::OnExit(TMapEditorState *This);
+	static void TMapEditorState::OnDefTileBrush(TMapEditorState *This);
+	static void TMapEditorState::OnStoneBrush(TMapEditorState *This);
+	static void TMapEditorState::OnGroundBrush( TMapEditorState *s );
+	static void TMapEditorState::OnWaterBrush( TMapEditorState *s );
 	void TMapEditorState::OnMouseClick(int x, int y);
 
 	// когда в главном меню выбираем LoadMap

@@ -18,46 +18,39 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 	// init menu
 	{
 		float x(0.0f), y(0.0f);
-		mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
-
 		TMenuItem DefMenuItem;
 		DefMenuItem.Font(GameState.mFont).CharSize(10);
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("F1) Exit to main menu.")
 			.Pos(x, y)
-			.OnKey(sf::Keyboard::F1,[](void*s)
-			{
-				auto t = (TMapEditorState*)s;
-				t->mTileMap = TTileMap();
-				GameState.GotoMainMenu();
-			}
-
-		);
+			.OnKey(sf::Keyboard::F1,
+					this,
+					&TMapEditorState::OnExit);
 		y += 15;
 		
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("F5) Save")
 			.Pos(x, y)
-			.OnKey(sf::Keyboard::F5, &TMapEditorState::DoOnSave);
+			.OnKey(sf::Keyboard::F5,
+					this,
+					&TMapEditorState::DoOnSave);
 		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("F6) Load")
 			.Pos(x, y)
-			.OnKey(sf::Keyboard::F6, &TMapEditorState::DoOnLoad);
+			.OnKey(sf::Keyboard::F6,
+					this,
+					&TMapEditorState::DoOnLoad);
 		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("~) Default tile brush")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::Tilde,
-				[](void* s)
-				{
-					auto t = ((TMapEditorState*)s);
-					t->mCursorSprite.setTextureRect({ t->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize });
-					t->mCurrentBrush = t->mTileMap.mParam.DefaultTileType;
-				}
+				this,
+				&TMapEditorState::OnDefTileBrush
 		);
 		y += 15;
 
@@ -65,25 +58,16 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 			.Text("1) Ground brush")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::Num1,
-				[](void* s)
-				{
-					auto t = ((TMapEditorState*)s);
-					t->mCursorSprite.setTextureRect({TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize});
-					t->mCurrentBrush = TTileType::Ground;
-				}
-		);
+				this,
+				&TMapEditorState::OnGroundBrush);
 		y += 15;
 
 		mMenu += TMenuItem(DefMenuItem)
 			.Text("2) Water brush")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::Num2,
-				[](void* s)
-				{
-					auto t = ((TMapEditorState*)s);
-					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize });
-					t->mCurrentBrush = TTileType::Water;
-				}
+				this,
+				&TMapEditorState::OnWaterBrush
 		);
 		y += 15;
 
@@ -91,17 +75,41 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 			.Text("3) Stones brush")
 			.Pos(x, y)
 			.OnKey(sf::Keyboard::Num3,
-				[](void* s)
-				{
-					auto t = ((TMapEditorState*)s);
-					t->mCursorSprite.setTextureRect({ TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize });
-					t->mCurrentBrush = TTileType::Stones;
-				}
-		);
+				this,
+				&TMapEditorState::OnStoneBrush);
 		y += 15;
 	}
 	mLastAction.setFont(GameState.mFont);
 	mLastAction.setCharacterSize(20);
+}
+void TMapEditorState::OnWaterBrush( TMapEditorState *s )
+{
+	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize } );
+	s->mCurrentBrush = TTileType::Water;
+}
+
+void TMapEditorState::OnGroundBrush(TMapEditorState *s)
+{
+	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize } );
+	s->mCurrentBrush = TTileType::Ground;
+}
+
+void TMapEditorState::OnStoneBrush( TMapEditorState *This )
+{
+	This->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize } );
+	This->mCurrentBrush = TTileType::Stones;
+}
+
+void TMapEditorState::OnDefTileBrush(TMapEditorState *This)
+{
+	This->mCursorSprite.setTextureRect( { This->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize } );
+	This->mCurrentBrush = This->mTileMap.mParam.DefaultTileType;
+}
+
+void TMapEditorState::OnExit( TMapEditorState *This )
+{
+	This->mTileMap = TTileMap();
+	GameState.GotoMainMenu();
 }
 
 TMapEditorState::~TMapEditorState()
@@ -236,23 +244,21 @@ void TMapEditorState::UpdateView()
 }
 void TMapEditorState::OnResize() { UpdateView(); }
 
-void TMapEditorState::DoOnSave(void *This_)
+void TMapEditorState::DoOnSave(TMapEditorState *This)
 {
-	TMapEditorState& This = *((TMapEditorState*)This_);
 //	This.mTileMap.Save(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.mParam.FileName.c_str() );
-	This.mTileMap.Save(db);
+	db.Open(This->mTileMap.mParam.FileName.c_str() );
+	This->mTileMap.Save(db);
 
 }
 
-void TMapEditorState::DoOnLoad(void *This_)
+void TMapEditorState::DoOnLoad(TMapEditorState *This)
 {
-	TMapEditorState& This = *((TMapEditorState*)This_);
 //	This.mTileMap.Load(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
-	db.Open(This.mTileMap.mParam.FileName.c_str());
-	This.mTileMap.Load(db);	
+	db.Open(This->mTileMap.mParam.FileName.c_str());
+	This->mTileMap.Load(db);	
 }
 
 void TMapEditorState::LoadMap(const wchar_t* FileName)

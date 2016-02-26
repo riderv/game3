@@ -140,6 +140,7 @@ void TTileMap::Load(SQLite::TDB& db)
 	
 	// read (tile_type,x,y) to new map
 	Index2TileType NewMap;
+
 	{
 		auto Stmt = db.Prepare("select x,y,TileType from map_tiles");
 		ui16 Type;
@@ -167,3 +168,24 @@ void TTileMap::Load(SQLite::TDB& db)
 
 	Transaction.Commit();
 }
+
+int TTileMap::CountOf( TTileType TileType ) const
+{
+	int Count = 0;
+	if( mParam.DefaultTileType == TileType )
+	{
+		Count = mParam.w * mParam.h;
+		Count -= IntFromSizet( mMap.size() );
+		return Count;
+	}
+	
+	for( auto tt : mMap )
+	{
+		if( tt.second == TileType )
+		{
+			Count++;
+		}
+	}
+	return Count;
+}
+

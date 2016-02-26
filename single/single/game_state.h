@@ -35,6 +35,7 @@ struct TGameState : IGameState, noncopyable
 
 	void TGameState::LoadBaseFont();
 	void TGameState::LoadBaseTileset();
+	void TGameState::LoadSounds();
 
 	IGameState		*mCurrentState = nullptr;
 	TMainMenuState	*mMainMenuState = nullptr;
@@ -47,4 +48,13 @@ struct TGameState : IGameState, noncopyable
 	void *mTilesetBuf = 0;
 	sf::Clock mClock;
 	float DTs = 0;
+
+	struct TSound {
+		void* mFileView = 0;
+		sf::SoundBuffer mSfmlSoundBuf;
+		sf::Sound mSound;
+		TSound( void* buf )
+			: mFileView( buf ) {}
+	};
+	std::vector<TSound> mSounds;
 };

@@ -9,3 +9,11 @@ struct TException: std::exception
 	std::wstring msg;
 };
 
+
+inline int IntFromSizet( size_t val )
+{
+	if( val > INT_MAX ) {
+		throw TException( "IntFromSizet: out of range" );
+	}
+	return (int)val;
+}

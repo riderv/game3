@@ -28,6 +28,8 @@ union TCoord2Int
 	bool operator==(const TCoord2Int& R) { return ui == R.ui;}
 	operator uint32_t() const { return ui; }
 };
+	
+typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
 
 struct TTileMap
 {
@@ -41,10 +43,11 @@ struct TTileMap
 	void	 TTileMap::Save(SQLite::TDB& db);
 	void	 TTileMap::Load(SQLite::TDB& db);
 
+	int		 CountOf( TTileType TileType ) const;
+
 	TMapParams mParam;
 	sf::Texture mTilesetTexture;
 
 private:
-	typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
 	Index2TileType mMap;		
 };

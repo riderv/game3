@@ -120,3 +120,10 @@ std::pair<void*, size_t> MapFile(const std::wstring& FileName)
 	Finally.Erase(Finally.Count() - 1);
 	return std::make_pair(pBuf, FileSize);
 }
+
+inline std::wstring IntToWStr( int i )
+{
+	wchar_t buf[128];
+	_itow_s( i, buf, 10 );
+	return std::wstring( buf );
+}

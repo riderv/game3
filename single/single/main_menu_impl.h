@@ -14,15 +14,16 @@
 //----------------------------
 //			TMenuItem
 //----------------------------
-
-inline TMenuItem& TMenuItem::OnKey(sf::Keyboard::Key Key, void(*callback_ptr)(void* object))
+template <class T>
+inline TMenuItem& TMenuItem::OnKey( sf::Keyboard::Key Key, T* object, void( *callback_ptr )(T* object) )
 {
 	assert(callback_ptr);
 	this->Key = Key;
-	callback = callback_ptr;
+	this->object = object;
+	this->callback = (callback_t)callback_ptr;
 	return *this;
 }
-inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object)
+inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key)
 {
 	if (Key == sf::Keyboard::Unknown)
 		return false;
@@ -37,7 +38,7 @@ inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key, void* object)
 inline void TMenu::ProcessKey(sf::Keyboard::Key Key)
 {
 	for (auto mi : items)
-		if (mi.ProcessKey(Key, object_handler))
+		if (mi.ProcessKey(Key))
 			break;
 }
 
@@ -59,22 +60,24 @@ TMainMenuState::TMainMenuState(TGameState* pGameState)
 	: mState(pGameState)
 {
 	float x(100.0f), y(100.0f);
-	mMenu.ObjectHandler(this);	// Yeeees, I know, it's must be template for type-safety, but... I hate template: bloat exe, increase compilation time and poor IDE performance...
 
 	mMenu += TMenuItem().Text(L"Бродилка")
 		.Font(GameState.mFont).Pos(x, y).CharSize(30);
 	y += 60;
 
 	mMenu += TMenuItem().Text("1) Generate and edit map...")
-		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num1, &TMainMenuState::OnGenMap);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20)
+		.OnKey(sf::Keyboard::Num1, this, &TMainMenuState::OnGenMap);
 	y += 30;
 
 	mMenu += TMenuItem().Text("2) Load map and edit...")
-		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num2, &TMainMenuState::OnLoadMap);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20)
+		.OnKey(sf::Keyboard::Num2, this, &TMainMenuState::OnLoadMap);
 	
 	y += 30;
 	mMenu += TMenuItem().Text("3) Load map and play.")
-		.Font(GameState.mFont).Pos(x, y).CharSize(20).OnKey(sf::Keyboard::Num3, &TMainMenuState::OnLoadAndPlay);
+		.Font(GameState.mFont).Pos(x, y).CharSize(20)
+		.OnKey(sf::Keyboard::Num3, this, &TMainMenuState::OnLoadAndPlay);
 
 }
 
@@ -179,9 +182,8 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
-void TMainMenuState::OnGenMap(void *This_)
+void TMainMenuState::OnGenMap(TMainMenuState *This)
 {
-	TMainMenuState *This = ((TMainMenuState*)This_);
 	HWND hDlg = NULL;
 	try {
 		// Спросим у юзера каким размеров карту ему хочется.
@@ -283,11 +285,9 @@ void TMainMenuState::OnGenMap(void *This_)
 
 
 
-void TMainMenuState::OnLoadMap(void *This_)
+void TMainMenuState::OnLoadMap( TMainMenuState *This )
 {
 	try {
-		TMainMenuState *This = ((TMainMenuState*)This_);
-
 		static const int FileName_BufSize = 4 * 1024;
 		wchar_t FileName[FileName_BufSize] = { 0 };
 		wchar_t FilePath[FileName_BufSize] = { 0 };
@@ -325,9 +325,8 @@ void TMainMenuState::OnLoadMap(void *This_)
 	}
 }
 
-void TMainMenuState::OnLoadAndPlay(void *This_)
+void TMainMenuState::OnLoadAndPlay( TMainMenuState *This )
 {
-	TMainMenuState *This = ((TMainMenuState*)This_);
 	try {
 		static const int FileName_BufSize = 4 * 1024;
 		wchar_t FileName[FileName_BufSize] = { 0 };

@@ -13,6 +13,7 @@ TGameState::TGameState()
 {
 	LoadBaseFont();
 	LoadBaseTileset();
+	LoadSounds();
 
 	mCurrentState = mMainMenuState = new TMainMenuState(this);
 }
@@ -30,7 +31,9 @@ TGameState::~TGameState()
 		UnmapViewOfFile(mTilesetBuf);
 		mTilesetBuf = 0;
 	}
-
+	for( auto s : mSounds ) {
+		UnmapViewOfFile( s.mFileView );
+	}
 
 }
 
@@ -93,9 +96,27 @@ void TGameState::LoadBaseTileset()
 	}
 }
 
+void TGameState::LoadSounds()
+{
+	std::wstring fn;
+	mSounds.reserve( 11 );
+	for( int i = 1; i < 12; ++i )
+	{
+		fn = GetExePatch() + L"/res/nyam" + IntToWStr(i) + L".ogg";
+		auto res = MapFile( fn );
+		mSounds.push_back( TGameState::TSound(res.first) );
+		TGameState::TSound & s = *mSounds.rbegin();
+		
+		if( ! s.mSfmlSoundBuf.loadFromMemory(res.first, res.second) )
+			throw TException( L"File not found: " + fn );
+		s.mSound.setBuffer( s.mSfmlSoundBuf );
+	}
+}
+
 void TGameState::GotoMainMenu()
 {
 	mCurrentState = mMainMenuState;
+	Win.setView( Win.getDefaultView() );
 }
 
 void TGameState::GotoPlay_LoadMap(const wchar_t* FileName)

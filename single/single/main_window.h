@@ -23,7 +23,7 @@ void MainLoop()
 	}FinGameState;
 	
 	assert(TTileType::Count == sizeof(TileType_Names) / sizeof(TileType_Names[0]));
-	GameState.GotoPlay_LoadMap(L"d:\\_pro\\game3\\maps\\newMap3");
+	//GameState.GotoPlay_LoadMap(L"d:\\_pro\\game3\\maps\\newMap3");
 
 	Win.setVerticalSyncEnabled(true);
 	//Win.setFramerateLimit(0);
