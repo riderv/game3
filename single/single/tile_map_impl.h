@@ -116,7 +116,7 @@ void TTileMap::Load(SQLite::TDB& db)
 {
 	auto Transaction = db.BeginTransaction();
 	TMapParams tmpParam = mParam;
-	bool IsNull; // todo: null check
+	bool IsNull;
 	// read map from database
 	{
 		auto Stmt = db.Prepare("select w,h,DefaultTileType from map");

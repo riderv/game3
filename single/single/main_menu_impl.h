@@ -20,7 +20,7 @@ inline TMenuItem& TMenuItem::OnKey( sf::Keyboard::Key Key, T* object, void( *cal
 	assert(callback_ptr);
 	this->Key = Key;
 	this->object = object;
-	this->callback = (callback_t)callback_ptr;
+	this->callback = reinterpret_cast<callback_t>(callback_ptr);
 	return *this;
 }
 inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key)
@@ -109,7 +109,7 @@ static int __stdcall BrowseNotify(HWND hWnd, UINT iMessage, LPARAM wParam, LPARA
 		// è ïîïàë íà íåñêîëüêî ÷àñîâ: 
 		// íå çíàë, ÷òî ðàáîòàòü ñ òåêñòîâûìè þíèêîä-ôàéëàìè
 		// â âèíäå òàêàÿ ãîëîâàíÿ áîëü.
-		// TODO ÏÅÐÅÄÅËÀÒÜ ÍÀ ÁÄ ÈËÈ ÁÈÍÀÐÍÛÉ ÔÀÉË
+		// TODO: ÏÅÐÅÄÅËÀÒÜ ÍÀ ÁÄ ÈËÈ ÁÈÍÀÐÍÛÉ ÔÀÉË èëè xml
 		std::wstring fn = GetExePatch() + L"\\last_map_dir";
 #pragma warning(disable:4996)
 		FILE * F = _wfopen( fn.c_str(), L"rt, ccs=UTF-16LE");
@@ -257,7 +257,6 @@ void TMainMenuState::OnGenMap(TMainMenuState *This)
 		//Param.w = 16;
 		//Param.DefaultTileType = TileType::Graund;
 
-		This->mState->GotoMapEditor_CreateMap(Param);
 
 		for (int x = 0; x < Param.w; ++x)
 		{
@@ -269,17 +268,21 @@ void TMainMenuState::OnGenMap(TMainMenuState *This)
 			This->mState->mMapEditorState->TileMap().Set(0, y, TTileType::Water);
 			This->mState->mMapEditorState->TileMap().Set(Param.w - 1, y, TTileType::Water);
 		}
-		This->mState->mMapEditorState->TileMap().Set(3, 3, TTileType::Water);
+		//This->mState->mMapEditorState->TileMap().Set(3, 3, TTileType::Water);
+		This->mState->GotoMapEditor_CreateMap(Param);
+		return;
 	}
 	catch (const TException &e)
 	{
 		if(hDlg)
 			DestroyWindow(hDlg);
+		Log( e.msg );
 		MessageBoxW(0, e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
 	}
 	catch (...)
 	{
 		MessageBoxA(0, "TMainMenuState::OnGenMap", "Unknown exception", MB_ICONERROR);
+		Log( L"Unknown exception in TMainMenuState::OnGenMap" );
 	}
 }
 
@@ -311,17 +314,19 @@ void TMainMenuState::OnLoadMap( TMainMenuState *This )
 			std::wstring w(1024, L'\0');
 			GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
 			Win.setTitle("Loading map...");
-			GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
 			Win.setTitle(w.c_str());
+			GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
 		}
 	}
 	catch (const TException &e)
 	{
 		MessageBoxW(0, e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
+		Log( L"TMainMenuState::OnLoadMap catch exception with message" + e.msg );
 	}
 	catch (...)
 	{
 		MessageBoxA(0, "TMainMenuState::OnLoadMap", "Unknown exception", MB_ICONERROR);
+		Log( L"TMainMenuState::OnLoadMap catch unknown exception" );
 	}
 }
 
@@ -359,10 +364,12 @@ void TMainMenuState::OnLoadAndPlay( TMainMenuState *This )
 	catch (const TException& E)
 	{
 		MessageBoxW(0, E.msg.c_str(), L"Error: TMainMenuState::OnLoadAndPlay", MB_ICONERROR);
+		Log( L"TMainMenuState::OnLoadAndPlay catch exception" + E.msg );
 	}
 	catch (...)
 	{
 		MessageBoxA(0, "TMainMenuState::OnLoadAndPlay", "Unknown exception", MB_ICONERROR);
+		Log( L"TMainMenuState::OnLoadAndPlay catch unknown exception" );
 	}
 	GameState.GotoMainMenu();
 }

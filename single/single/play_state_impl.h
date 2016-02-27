@@ -301,7 +301,7 @@ void TPlayState::Simulate()
 	SimulateMoving();
 	MoveAnimieFrame();
 }
-void TPlayState::UpdateView() // TODO не нравитс€ копипаст из редактора. Ќужно как то обобщить.
+void TPlayState::UpdateView() // TODO: не нравитс€ копипаст из редактора. Ќужно как то обобщить.
 {
 	sf::Vector2u ws = Win.getSize();
 
@@ -389,10 +389,16 @@ void TPlayState::UpdateMapTarget()
 	mInvalidMapTarget = false;
 }
 
+void TPlayState::RaiseDBException( TPlayState * This, const std::wstring& ermsg )
+{
+	throw TException( ermsg );
+}
+
 void TPlayState::LoadAndPlay(const wchar_t* FileName)
 {
 	try {
 		SQLite::TDB db;
+		db.SetExceptionRaiser( this, &TPlayState::RaiseDBException );
 		db.Open(FileName);
 		mTileMap.Load(db);
 		mTileMap.mParam.FileName = FileName;
@@ -404,18 +410,10 @@ void TPlayState::LoadAndPlay(const wchar_t* FileName)
 		UpdateView();
 		return;
 	}
-	// TODO: сделать чтоли от одного предка?
-	catch (const SQLite::exception& e)
-	{
-		MessageBoxA(0, e.msg.c_str(), "Error loading map.", MB_ICONERROR);
-	}
-	catch (const SQLite::wexception& e)
-	{
-		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
-	}
 	catch (const TException& e)
 	{
 		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
+		Log( L"TPlayState::LoadAndPlay catch exception: " + e.msg );
 	}
 	mTileMap = TTileMap();
 	GameState.GotoMainMenu();

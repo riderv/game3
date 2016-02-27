@@ -28,6 +28,8 @@ struct TMapEditorState : IGameState, noncopyable
 	static void TMapEditorState::OnStoneBrush(TMapEditorState *This);
 	static void TMapEditorState::OnGroundBrush( TMapEditorState *s );
 	static void TMapEditorState::OnWaterBrush( TMapEditorState *s );
+	static void TMapEditorState::RaiseDBException( TMapEditorState *This, const std::wstring &erm );
+	
 	void TMapEditorState::OnMouseClick(int x, int y);
 
 	// когда в главном меню выбираем LoadMap

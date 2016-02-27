@@ -84,26 +84,26 @@ TMapEditorState::TMapEditorState(TGameState* BaseState)
 }
 void TMapEditorState::OnWaterBrush( TMapEditorState *s )
 {
-	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize } );
 	s->mCurrentBrush = TTileType::Water;
+	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Water, 0, TilePxSize, TilePxSize } );
 }
 
 void TMapEditorState::OnGroundBrush(TMapEditorState *s)
 {
-	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize } );
 	s->mCurrentBrush = TTileType::Ground;
+	s->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Ground, 0, TilePxSize, TilePxSize } );
 }
 
 void TMapEditorState::OnStoneBrush( TMapEditorState *This )
 {
-	This->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize } );
 	This->mCurrentBrush = TTileType::Stones;
+	This->mCursorSprite.setTextureRect( { TilePxSize*TTileType::Stones, 0, TilePxSize, TilePxSize } );
 }
 
 void TMapEditorState::OnDefTileBrush(TMapEditorState *This)
 {
-	This->mCursorSprite.setTextureRect( { This->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize } );
 	This->mCurrentBrush = This->mTileMap.mParam.DefaultTileType;
+	This->mCursorSprite.setTextureRect( { This->mCurrentBrush*TilePxSize ,0,TilePxSize,TilePxSize } );
 }
 
 void TMapEditorState::OnExit( TMapEditorState *This )
@@ -114,7 +114,7 @@ void TMapEditorState::OnExit( TMapEditorState *This )
 
 TMapEditorState::~TMapEditorState()
 {
-	// TODO надо ли выгружать текстуры, или SFML само?..
+	// TODO: надо ли выгружать текстуры, или SFML само?..
 }
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
@@ -244,10 +244,17 @@ void TMapEditorState::UpdateView()
 }
 void TMapEditorState::OnResize() { UpdateView(); }
 
+void TMapEditorState::RaiseDBException( TMapEditorState *This, const std::wstring &erm )
+{
+	throw TException( erm );
+}
+
 void TMapEditorState::DoOnSave(TMapEditorState *This)
 {
 //	This.mTileMap.Save(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
+	db.SetExceptionRaiser( This, &TMapEditorState::RaiseDBException );
+
 	db.Open(This->mTileMap.mParam.FileName.c_str() );
 	This->mTileMap.Save(db);
 
@@ -257,6 +264,7 @@ void TMapEditorState::DoOnLoad(TMapEditorState *This)
 {
 //	This.mTileMap.Load(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
+	db.SetExceptionRaiser( This, &TMapEditorState::RaiseDBException );
 	db.Open(This->mTileMap.mParam.FileName.c_str());
 	This->mTileMap.Load(db);	
 }
@@ -265,28 +273,26 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 {
 	try {
 		SQLite::TDB db;
+		db.SetExceptionRaiser( this, &TMapEditorState::RaiseDBException );
 		db.Open(FileName);
 		mTileMap.Load(db);
 		mTileMap.mParam.FileName = FileName;
 		mCurrentBrush = mTileMap.mParam.DefaultTileType;
-		mTileSprite.setTexture(mTileMap.mTilesetTexture);
+		mTileSprite.setTexture(GameState.mTilesetTexture);
 		mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
 
 		UpdateView();
 		return;
 	}
-	// TODO: сделать чтоли от одного предка?
-	catch (const SQLite::exception& e)
-	{
-		MessageBoxA(0, e.msg.c_str(), "Error loading map.", MB_ICONERROR);
-	}
-	catch (const SQLite::wexception& e)
-	{
-		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
-	}
 	catch (const TException& e)
 	{
 		MessageBoxW(0, e.msg.c_str(), L"Error loading map.", MB_ICONERROR);
+		Log( L"TMapEditorState::LoadMap catch exception with message: " + e.msg );
+	}
+	catch( ... )
+	{
+		MessageBoxW( 0, L"Unknown error", L"Error loading map.", MB_ICONERROR );
+		Log( L"TMapEditorState::LoadMap catch unknown exception" );
 	}
 	mTileMap = TTileMap();
 	GameState.GotoMainMenu();

@@ -4,7 +4,7 @@
 
 static const int TilePxSize = 16;
 static const int CharPxHeigth = 32;
-// todo: заменить все int на int32
+
 enum TTileType : ui16
 { Unknown,   Ground,   Water, Stones,  Count };
 

@@ -75,6 +75,7 @@ void MainLoop()
 		//if (elapsed < (1000 / 60)) {
 		//	Sleep((1000 / 60) - elapsed);			
 		//}
+		FrameCount++;
 		if (clock.getElapsedTime().asMilliseconds() >= 1000)
 		{
 			char buf[256];
@@ -83,8 +84,5 @@ void MainLoop()
 			clock.restart();
 			FrameCount = 0;
 		}
-		FrameCount++;
-
-
 	}	
 }

@@ -74,6 +74,8 @@ struct TPlayState : IGameState, noncopyable
 	void TPlayState::OnChangePlayrPos();
 	void TPlayState::OnTileReached();
 
+	static void TPlayState::RaiseDBException( TPlayState * This, const std::wstring& ermsg );
+
 private:
 	
 	sf::Texture mCharacterTexture;

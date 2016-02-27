@@ -5,21 +5,19 @@
 
 namespace SQLite
 {
-	struct exception_base {};
-	struct exception: exception_base
-	{
-		std::string msg;
-		exception(std::string&& msg) : msg(msg) {}
-		exception(const std::string &msg) : msg(msg) {}
-	};
-	struct wexception: exception_base
-	{
-		std::wstring msg;
-		wexception(std::wstring&& msg) : msg(msg) {}
-		wexception(const std::wstring& msg) : msg(msg){}
-	};
 	struct TDB
 	{
+		typedef void( *ExceptionRaiserInner_t )(void *obj, const std::wstring&);
+		void *mUserObject = 0;
+		ExceptionRaiserInner_t mExceptionRaiser = 0;
+		
+		template< class T >
+		void SetExceptionRaiser( T* pYourObject, void(*ExceptionRaiserStaticMethod)(T*, const std::wstring&) )
+		{
+			mExceptionRaiser = reinterpret_cast<ExceptionRaiserInner_t>(ExceptionRaiserStaticMethod);
+			mUserObject = pYourObject;
+		}
+
 		sqlite3 *db = nullptr;
 		TDB::~TDB()
 		{
@@ -37,21 +35,21 @@ namespace SQLite
 			std::string erm(msg);
 			erm += " failed. ";
 			erm += sqlite3_errmsg(db);
-			throw exception(erm);
+			mExceptionRaiser( mUserObject, AnsiToUtf16(erm) );
 		}
 		inline void TDB::Raise(std::string&& msg)
 		{
 			std::string erm(msg);
 			erm += " failed. ";
 			erm += sqlite3_errmsg(db);
-			throw exception(erm);
+			mExceptionRaiser( mUserObject, AnsiToUtf16( erm ) );
 		}
 		inline void TDB::Raise(const char *msg)
 		{
 			std::string erm(msg);
 			erm += " failed. ";
 			erm += sqlite3_errmsg(db);
-			throw exception(erm);
+			mExceptionRaiser( mUserObject, AnsiToUtf16( erm ) );
 		}
 		inline void TDB::Raise(const char* msg, const char* msg2)
 		{
@@ -60,14 +58,14 @@ namespace SQLite
 			erm += msg2;
 			erm += " ";
 			erm += sqlite3_errmsg(db);
-			throw exception(erm);
+			mExceptionRaiser( mUserObject, AnsiToUtf16( erm ) );
 		}
 		void TDB::Open(const wchar_t* DatabaseFileName)
 		{
 			Close();
 			if (SQLITE_OK != sqlite3_open16(DatabaseFileName, &db))
 			{
-				throw wexception(
+				mExceptionRaiser( mUserObject,
 					std::wstring(L"sqlite3_open(") // todo: make utf16 version
 					+ (DatabaseFileName ? DatabaseFileName : L"<NULL>")
 					+ L") failed: "
@@ -81,9 +79,11 @@ namespace SQLite
 			Close();
 			if (SQLITE_OK != sqlite3_open(DatabaseFileName, &db))
 			{
-				throw exception(std::string("sqlite3_open(")
-					+ (DatabaseFileName ? DatabaseFileName : "<NULL>")
-					+ ") failed: " + sqlite3_errmsg(db) );
+				std::string erm( "sqlite3_open(" );
+				erm += (DatabaseFileName ? DatabaseFileName : "<NULL>");
+				erm += ") failed: ";
+				erm += sqlite3_errmsg(db);
+				mExceptionRaiser( mUserObject, AnsiToUtf16( erm ) );
 			}
 		}
 		struct TTransaction
