@@ -13,11 +13,11 @@ struct TMapParams
 	TMapParams() {  }
 };
 
-union TCoord2Int
+union TCoord2UInt
 {
-	TCoord2Int() :ui(0) {}
-	TCoord2Int(int x, int y) : x(ui16(x)), y(ui16(y)) { assert(x >= 0 && x <= Max<ui16>()); assert(y >= 0 && y <= Max<ui16>()); }
-	TCoord2Int(ui32 val) : ui(val) {}
+	TCoord2UInt() :ui(0) {}
+	TCoord2UInt(int x, int y) : x(ui16(x)), y(ui16(y)) { assert(x >= 0 && x <= Max<ui16>()); assert(y >= 0 && y <= Max<ui16>()); }
+	explicit TCoord2UInt(ui32 val) : ui(val) {}
 
 	ui32 ui;
 	struct {
@@ -25,29 +25,29 @@ union TCoord2Int
 		ui16 y;
 	};
 
-	bool operator==(const TCoord2Int& R) { return ui == R.ui;}
+	bool operator==(const TCoord2UInt& R) { return ui == R.ui;}
 	operator uint32_t() const { return ui; }
 };
 	
-typedef std::unordered_map< TCoord2Int, TTileType, std::hash<uint32_t> > Index2TileType;
+typedef std::unordered_map< TCoord2UInt, TTileType, std::hash<uint32_t> > TTileMapInternal;
 
 struct TTileMap
 {
 	
-	TTileType	TTileMap::TypeAt(int x, int y) const;
-	void		TTileMap::Set(int x, int y, TTileType TileType);
-	void		TTileMap::SafeSet(int x, int y, TTileType TileType);
+	TTileType	Get(int x, int y) const;
+	void		Set(int x, int y, TTileType TileType);
+	bool		SafeSet(int x, int y, TTileType TileType); // true if success
 
-	void	 TTileMap::Reset(const TMapParams& MapParams);
+	void		Reset(const TMapParams& MapParams);
 
-	void	 TTileMap::Save(SQLite::TDB& db);
-	void	 TTileMap::Load(SQLite::TDB& db);
+	void		Save(SQLite::TDB& db);
+	void		Load(SQLite::TDB& db);
 
-	int		 CountOf( TTileType TileType ) const;
+	int			CountOf( TTileType TileType ) const;
 
 	TMapParams mParam;
 	sf::Texture mTilesetTexture;
 
 private:
-	Index2TileType mMap;		
+	TTileMapInternal mMap;
 };

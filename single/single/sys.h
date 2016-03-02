@@ -18,98 +18,55 @@ inline std::wstring GetExePatch()
 	return std::wstring(FilePath);
 }
 
-struct ICallable
-{
-	virtual ICallable::~ICallable() {}
-	virtual void ICallable::operator()() = 0;
-};
-
-class TFinally
-{
-	std::vector<ICallable*> vec;
-	typedef std::vector<ICallable*>::reverse_iterator rev_itr;
-public:
-	~TFinally()
-	{
-		for (rev_itr v = vec.rbegin(); v != vec.rend(); ++v) {
-			(*v)->operator()();
-			delete (*v);
-		}
-	}
-	template <class T>
-	void operator+=(const T& fun)
-	{
-		struct Callable: ICallable {
-			T t;
-			void operator()()override {
-				t();
-			}
-			Callable(const T& f) : t(f) {}
-		};
-		vec.push_back(new Callable(fun));
-	}
-	int Count() const { return static_cast<int> (vec.size()); }
-	void Erase(int i)
-	{
-		if (i < 0 && size_t(i) >= vec.size())
-			throw TException(L"TFinally::Erase(i) out of range.");
-
-		ICallable* C = vec[i];
-		delete C;
-		vec.erase(vec.begin() + i);
-	}
-};
 
 inline 
 std::pair<void*, size_t> MapFile(const std::wstring& FileName)
 {
-	TFinally Finally;
 
-	HANDLE hFile;
-	HANDLE hMapFile;
-	void* pBuf;
+	struct TFileHandle	{
+		HANDLE Handle;
+		~TFileHandle() { CloseHandle( Handle ); }
+	} File = { CreateFileW( FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0 ) };
 
-	hFile = CreateFileW(FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-	if (INVALID_HANDLE_VALUE == hFile)
+	if( INVALID_HANDLE_VALUE == File.Handle )
 	{
 		std::wstring erm = L"MapFile,CreateFile failed. " + LastErrStr();
 		Log(erm);
 		throw TException(erm);
 	}
-	Finally += [&]() { CloseHandle(hFile); };
 
-	hMapFile = CreateFileMappingW(
-		hFile,    // use paging file
-		NULL,                    // default security
-		PAGE_READONLY,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		0,				 // maximum object size (low-order DWORD)
-		0);                 // name of mapping object
-
-	if (hMapFile == NULL)
+	struct TFileMapping {
+		HANDLE Handle;
+		~TFileMapping() { CloseHandle( Handle ); }
+	} FileMapping = { CreateFileMappingW(
+		File.Handle,		// set NULL if you want using paging file
+		NULL,               // default security
+		PAGE_READONLY,      // read/write access
+		0,                  // maximum object size (high-order DWORD)
+		0,					// maximum object size (low-order DWORD)
+		0)					// name of mapping object
+	};
+	if( NULL == FileMapping.Handle )
 	{
 		std::wstring erm = L"Could not create file mapping object.\n" + LastErrStr();
 		Log(erm);
 		throw TException(erm);
 	}
-	Finally += [&]() { CloseHandle(hMapFile); };
 
-	pBuf = MapViewOfFile(hMapFile,   // handle to map object
-		FILE_MAP_READ, // read/write permission
-		0,
-		0,
-		0);
+	struct TMapView {
+		void* Buf;
+		~TMapView() { if( Buf ) UnmapViewOfFile(Buf); }
+	} MapView = { MapViewOfFile( FileMapping.Handle, FILE_MAP_READ, 0, 0, 0 ) };
 
-	if (pBuf == NULL)
+	if( NULL == MapView.Buf )
 	{
 		std::wstring erm = L"Could not map view of file.\n" + LastErrStr();
 		Log(erm);
 		throw TException(erm);
-	}
-	Finally += [&]() { UnmapViewOfFile(pBuf); };
+	}	
 
 	DWORD FileSize;
-	FileSize = GetFileSize(hFile, 0);
+	FileSize = GetFileSize(File.Handle, 0);
 	if (FileSize == INVALID_FILE_SIZE)
 	{
 		std::wstring erm = L"GetFileSize failed. " + LastErrStr();
@@ -117,8 +74,9 @@ std::pair<void*, size_t> MapFile(const std::wstring& FileName)
 		throw TException(erm);
 	}
 
-	Finally.Erase(Finally.Count() - 1);
-	return std::make_pair(pBuf, FileSize);
+	auto result = std::make_pair( MapView.Buf, FileSize );
+	MapView.Buf = 0;
+	return result;
 }
 
 inline std::wstring IntToWStr( int i )
@@ -127,3 +85,4 @@ inline std::wstring IntToWStr( int i )
 	_itow_s( i, buf, 10 );
 	return std::wstring( buf );
 }
+

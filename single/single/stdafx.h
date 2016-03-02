@@ -11,6 +11,10 @@
 // Windows Header Files:
 #include <windows.h>
 #include <Shlobj.h>
+#include <Commctrl.h>
+#include <commdlg.h>
+#include <wchar.h>
+
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "ole32.lib")
 
@@ -19,15 +23,15 @@
 	#pragma comment(lib, "sfml-system-d.lib")
 	#pragma comment(lib, "sfml-window-d.lib")
 	#pragma comment(lib, "sfml-graphics-d.lib")
-	#pragma comment(lib, "sqlite3.lib")
 	#pragma comment(lib, "sfml-audio-d.lib")
+	#pragma comment(lib, "sqlite3.lib")
 #else
 	#pragma comment(lib, "sfml-main.lib")
 	#pragma comment(lib, "sfml-system.lib")
 	#pragma comment(lib, "sfml-window.lib")
 	#pragma comment(lib, "sfml-graphics.lib")
-	#pragma comment(lib, "sqlite3.lib")
 	#pragma comment(lib, "sfml-audio.lib")
+	#pragma comment(lib, "sqlite3.lib")
 #endif
 
 
@@ -44,14 +48,14 @@
 //#include <stdlib.h>
 //#include <crtdbg.h>
 
+#ifdef _DEBUG
 #include <vld.h> // memory leak detector
+#endif
 
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
-
-#include <Commctrl.h>
 
 // STL
 #include <memory>
@@ -61,8 +65,9 @@
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
-#include <functional>
-
+//#include <functional>
+// CRT
+#include <math.h> 
 
 
 // иначе limits не работает
@@ -76,9 +81,11 @@
 
 #include <limits>
 
-#include <commdlg.h>
 
-#include <wchar.h>
+#define SQLITE_API __declspec(dllimport)
+#define SQLITE_STDCALL __stdcall
+#include "sqlite3.h"
+
 
 extern HINSTANCE gHinstance;
 
@@ -112,17 +119,12 @@ constexpr uint32_t ui32max()
 	return Max<uint32_t>();
 }
 
-#define CHECK_RANGE(Val, Min, Max)\
-	if(Val < Min || Val > Max){\
-		std::wstringstream s;\
-		s << L"CHECK_RANGE(val:" << Val << L", Min:" << LMin << L", Max:" << Max << L" failed.";\
-		throw TException(s); };
 
 
-#define SQLITE_API __declspec(dllimport)
-#define SQLITE_STDCALL __stdcall
-
-#include "sqlite3.h"
+// BASEHACK -- доступ к this класса через this объекта-члена
+// (если объект член вложен а не выделен в хипе)
+// подобно стандартному макросу offsetof
+// (который здесь не использовался из за бажного хедера моей версии студии).
 
 #define BASEHACK(Class, Member, Ptr) (   (Class*) ( ((char*)this) - (long long)&(((Class*)0)->Member) )   )
 #define CONSTBASEHACK(Class, Member, Ptr) (   (const Class*) ( ((char*)this) - (long long)&(((Class*)0)->Member) )   )

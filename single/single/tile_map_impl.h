@@ -4,19 +4,20 @@
 #include "tile_map.h"
 
 
-void TTileMap::SafeSet(int x, int y, TTileType TileType)
+bool TTileMap::SafeSet(int x, int y, TTileType TileType)
 {
 	if (x < 0 || x >= mParam.w)
-		return;
+		return false;
 	if (y < 0 || y >= mParam.h)
-		return;
+		return false;
 
 	Set(x, y, TileType);
+	return true;
 }
 void TTileMap::Set(int x, int y, TTileType TileType)
 {
-	assert(x >= 0 && x < mParam.w);
-	assert(y >= 0 && y < mParam.h);
+	CHECK_TRUE(x >= 0 && x < mParam.w, L"TTileMap::Set fail: out of range. x=" + IntToWStr(x) + L" y=" + IntToWStr(y) + L" w/h=" + IntToWStr(mParam.w) + L"/" + IntToWStr(mParam.h) );
+	CHECK_TRUE(y >= 0 && y < mParam.h, L"TTileMap::Set fail: out of range. x=" + IntToWStr(x) + L" y=" + IntToWStr(y) + L" w/h=" + IntToWStr(mParam.w) + L"/" + IntToWStr(mParam.h) );
 	
 	if (mParam.DefaultTileType == TileType)
 	{
@@ -25,19 +26,17 @@ void TTileMap::Set(int x, int y, TTileType TileType)
 			mMap.erase(i);
 	}
 	else
-	{
 		mMap[{x, y}] = TileType;
-	}
 }
 
-TTileType TTileMap::TypeAt(int x, int y) const
+TTileType TTileMap::Get(int x, int y) const
 {
 	if (x < 0 || y < 0)
 		return TTileType::Unknown;
 	if ( x >= mParam.w || y >= mParam.h)
 		return TTileType::Unknown;
 
-	TCoord2Int key;
+	TCoord2UInt key;
 	key.x = ui16(x);
 	key.y = ui16(y);
 	auto i = mMap.find(key);
@@ -125,12 +124,12 @@ void TTileMap::Load(SQLite::TDB& db)
 			db.Raise("TTileMap::Load, 'select w,h,DefaultTileType from map' failed. One row must present. Query return zero.");
 		}
 		Stmt.Get(0, tmpParam.w, IsNull); // WTF? 0-based unlike param-binding
-		assert(IsNull == false);
+		CHECK_TRUE(IsNull == false, L"Error query result (select w,h,DefaultTileType from map), w is null.");
 		Stmt.Get(1, tmpParam.h, IsNull);
-		assert(IsNull == false);
+		CHECK_TRUE(IsNull == false, L"Error query result (select w,h,DefaultTileType from map), h is null." );
 		ui16 Type;
 		Stmt.Get(2, Type, IsNull);
-		assert(IsNull == false);
+		CHECK_TRUE(IsNull == false, L"Error query result (select w,h,DefaultTileType from map), DefaultTileType is null." );
 		tmpParam.DefaultTileType = TTileType(Type);
 		if (SQLITE_DONE != Stmt.Step())
 		{
@@ -139,7 +138,7 @@ void TTileMap::Load(SQLite::TDB& db)
 	}
 	
 	// read (tile_type,x,y) to new map
-	Index2TileType NewMap;
+	TTileMapInternal NewMap;
 
 	{
 		auto Stmt = db.Prepare("select x,y,TileType from map_tiles");
@@ -147,20 +146,22 @@ void TTileMap::Load(SQLite::TDB& db)
 		int ret;
 		while (SQLITE_ROW == (ret = Stmt.Step()) )
 		{
-			TCoord2Int co;
+			TCoord2UInt co;
 			Stmt.Get(0, co.x, IsNull);
-			assert(IsNull == false);
+			CHECK_TRUE(IsNull == false, L"select x,y,TileType from map_tiles ERROR: x is null" );
 			
 			Stmt.Get(1, co.y, IsNull);
-			assert(IsNull == false);
+			CHECK_TRUE(IsNull == false, L"select x,y,TileType from map_tiles ERROR: y is null" );
 			
 			Stmt.Get(2, Type, IsNull);
-			assert(IsNull == false);
+			CHECK_TRUE(IsNull == false, L"select x,y,TileType from map_tiles ERROR: TileType is null" );
 
 			NewMap[co] = TTileType(Type);
 			
 		}
-		assert(ret == SQLITE_DONE);
+		if( ret != SQLITE_DONE ) {
+			MessageBoxA(0, "Database layer warning. After reading from map_tiles sqlite_step return not SQLITE_DONE.", "Warning", MB_ICONWARNING );
+		}
 	}
 
 	mParam = tmpParam;
@@ -180,12 +181,9 @@ int TTileMap::CountOf( TTileType TileType ) const
 	}
 	
 	for( auto tt : mMap )
-	{
 		if( tt.second == TileType )
-		{
 			Count++;
-		}
-	}
+	
 	return Count;
 }
 

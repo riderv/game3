@@ -63,33 +63,25 @@ struct TLog
 		if (INVALID_HANDLE_VALUE == HFile) {
 			MessageBoxW(0, (L"EROR   CREATING   LOG FILE\n\n" + LastErrStr()).c_str(), L"error", MB_ICONERROR);
 			return;
-		}
-		
+		}		
 		
 		time_t rawtime;
 		tm* timeinfo;
-		static const int buf_len = 100;
+		static const int buf_len = 1024;
 		char buf[buf_len];
 		time(&rawtime);
-#pragma warning(push)
-#pragma warning( disable: 4996 )
+#pragma warning(disable: 4996)
 		timeinfo = localtime(&rawtime); 
-#pragma warning( pop )
-
-	
+#pragma warning(default: 4996)
 		strftime(buf, buf_len, "\r\n\r\n\r\nLog started: %G.%m.%d %H:%M:%S\r\n", timeinfo);
-		
 
 		DWORD bytes;
 		WriteFile(HFile, buf, (DWORD)strlen(buf), &bytes, 0);
-
 	}
 	~TLog()
 	{
-		if (HFile) {
+		if (HFile)
 			CloseHandle(HFile);
-			HFile = NULL;
-		}
 	}
 	TLog& operator() (const std::string& msg)
 	{
@@ -106,7 +98,6 @@ struct TLog
 		}
 		return *this;
 	}
-
 };
 extern TLog Log;
 
@@ -138,8 +129,8 @@ inline std::wstring LastErrStr(DWORD errorMessageID)
 
 inline std::wstring LastErrStr()
 {
-	//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
-	//Get the error message, if any.
+	//Returns the last Win32 error in string format. Returns an empty string if there is no error.
+	//Get the error message if any.
 	DWORD errorMessageID = ::GetLastError();
 	return LastErrStr(errorMessageID);
 }

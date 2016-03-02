@@ -1,44 +1,53 @@
 #pragma once
 
-#include "game_state.h"
-struct ITileMap
+#include "tile_map.h"
+
+// Решил таки скрыть TMapEditorState::mTileMap в привате,
+// а доступ через этот интерфейс.
+// По хорошему к каждому объектному-члену-класса так надо закрывать доступ,
+// но -- муууторно :), особенно при отсутствии "свойств" в С++,
+// потому только когда вижу явную необходимость - чтобы
+// др. часть кода не зависила от реализации,
+// так как реализация с высокой вероятностью изменится.
+
+struct ITileMap 
 {
-	virtual ITileMap::~ITileMap() {}
-	virtual void ITileMap::Set(int x, int y, TTileType val) = 0;
-	virtual TTileType ITileMap::Get(int x, int y) = 0;
+	virtual           ~ITileMap() {}
+	virtual void      Set(int x, int y, TTileType val) = 0;
+	virtual TTileType Get(int x, int y) const = 0;
 };
 
 struct TMapEditorState : IGameState, noncopyable
 {
-		 TMapEditorState::TMapEditorState(TGameState* BaseState);
-		 TMapEditorState::~TMapEditorState() override;
-	void TMapEditorState::PoolEvent(sf::Event &) override;
-	void TMapEditorState::Simulate() override;
-	void TMapEditorState::Draw() override;
-	void TMapEditorState::OnResize() override;
+		 TMapEditorState();
+		 ~TMapEditorState() override;
+	void PoolEvent(sf::Event &) override;
+	void Simulate() override;
+	void Draw() override;
+	void OnResize() override;
 
-	void TMapEditorState::CreateMap(const TMapParams& MapParams);
-	void TMapEditorState::UpdateView();
+	void CreateMap(const TMapParams& MapParams);
+	void UpdateView();
 
-	// когда в редакторе карты жмём f5/f6
-	static void TMapEditorState::DoOnSave(TMapEditorState *This);
-	static void TMapEditorState::DoOnLoad(TMapEditorState *This);
-	static void TMapEditorState::OnExit(TMapEditorState *This);
-	static void TMapEditorState::OnDefTileBrush(TMapEditorState *This);
-	static void TMapEditorState::OnStoneBrush(TMapEditorState *This);
-	static void TMapEditorState::OnGroundBrush( TMapEditorState *s );
-	static void TMapEditorState::OnWaterBrush( TMapEditorState *s );
-	static void TMapEditorState::RaiseDBException( TMapEditorState *This, const std::wstring &erm );
+	// когда в редакторе карты жмём...
+	static void DoOnSave(TMapEditorState *This); // F5
+	static void DoOnLoad(TMapEditorState *This); // F6
+	static void OnExit(TMapEditorState *This);   // F1 - хотел F12 но она с какого то перехватывается толи студией, толи ещё чем.
+	static void OnDefTileBrush(TMapEditorState *This); // тильдой
+	static void OnStoneBrush(TMapEditorState *This);	// далее цифрами
+	static void OnGroundBrush( TMapEditorState *s );
+	static void OnWaterBrush( TMapEditorState *s );
+
+	static void RaiseDBException( TMapEditorState *This, const std::wstring &erm ); // класс враппер sqlite будет вызывать в случае ошибки, чтобы пользователь sqlite-а сам бросил нужное ему исключение (чтобы catch блоки не разрастались)
 	
-	void TMapEditorState::OnMouseClick(int x, int y);
+	void OnMouseClick(int x, int y);
+	void LoadMap(const wchar_t* FileName);	// когда в главном меню выбираем LoadMap
 
-	// когда в главном меню выбираем LoadMap
-	void TMapEditorState::LoadMap(const wchar_t* FileName);
-
-	ITileMap& TileMap() { return miTileMap; }
+	ITileMap&		TileMap()		{ return miTileMap; }
+	ITileMap const& TileMap() const { return miTileMap; }
 	
 private:
-	TGameState *mState = nullptr;
+
 	TTileMap mTileMap;
 
 	sf::View mView;
@@ -47,7 +56,7 @@ private:
 	sf::Sprite mTileSprite;
 
 	sf::Clock mKeyDelayClock;
-	enum { enMenuSafe, enMenuLoad, enMenuCount };
+	
 	TMenu mMenu;
 	sf::Sprite mCursorSprite;
 	TTileType mCurrentBrush = mTileMap.mParam.DefaultTileType;
@@ -55,9 +64,8 @@ private:
 	struct ITileMapImpl: ITileMap
 	{
 		void      ITileMapImpl::Set(int x, int y, TTileType val) override;
-		TTileType ITileMapImpl::Get(int x, int y) override;
+		TTileType ITileMapImpl::Get(int x, int y) const override;
 	}miTileMap;
-
 	
 	sf::Text mLastAction;
 };

@@ -1,46 +1,45 @@
 #pragma once
 
-struct IGameState
+struct IGameState // OOP pattern "State"
 {
-	virtual IGameState::~IGameState() {}
-	virtual void IGameState::PoolEvent(sf::Event &) {}
-	virtual void IGameState::Draw() = 0;
-	virtual void IGameState::OnResize() = 0;
-	virtual void IGameState::Simulate() = 0;
+	virtual ~IGameState() {}
+	virtual void PoolEvent(sf::Event &) {}
+	virtual void Draw() = 0;
+	virtual void OnResize() = 0;
+	virtual void Simulate() = 0;
 };
 
-struct TMapEditorState; //: IGameState
-struct TMainMenuState;	//: IGameState
-struct TPlayState;		//: IGameState
-struct TMapParams;
+#include "main_menu.h"		// TMainMenuState  : IGameState
+#include "map_editor.h"		// TMapEditorState : IGameState
+#include "play_state.h"		// TPlayState	   : IGameState
 
 struct TGameState : IGameState, noncopyable
 {
+	TGameState();
+	~TGameState();
 
-	TGameState::TGameState();
-	TGameState::~TGameState();
-
-	void TGameState::PoolEvent(sf::Event &) override;
-	void TGameState::Simulate() override	{ mCurrentState->Simulate(); }
-	void TGameState::Draw() override		{ mCurrentState->Draw(); }
-	void TGameState::OnResize() override	{ mCurrentState->OnResize(); }
+	void PoolEvent(sf::Event &) override;
+	void Simulate() override	{ mCurrentState->Simulate(); }
+	void Draw() override		{ mCurrentState->Draw(); }
+	void OnResize() override	{ mCurrentState->OnResize(); }
 
 	// state maschine transition
-	//               state         substate
-	void TGameState::GotoMapEditor_CreateMap(const TMapParams &);
-	void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName);
-	void TGameState::GotoMainMenu();
-	void TGameState::GotoPlay_LoadMap(const wchar_t* FileName);
+	//   state         substate
+	void GotoMapEditor_CreateMap(const TMapParams &);
+	void GotoMapEditor_LoadMap(const wchar_t* FileName);
+	void GotoPlay_LoadMap(const wchar_t* FileName);
+	void GotoMainMenu();
 	
 
-	void TGameState::LoadBaseFont();
-	void TGameState::LoadBaseTileset();
-	void TGameState::LoadSounds();
+	void LoadBaseFont();
+	void LoadBaseTileset();
+	void LoadSounds();
 
+//private:
 	IGameState		*mCurrentState = nullptr;
-	TMainMenuState	*mMainMenuState = nullptr;
-	TMapEditorState *mMapEditorState = nullptr;
-	TPlayState      *mPlayState = nullptr;
+	TMainMenuState	mMainMenuState;
+	TMapEditorState mMapEditorState;
+	TPlayState      mPlayState;
 	bool mIsClosed = false;
 	sf::Font mFont;
 	void* mFontBuf = 0;

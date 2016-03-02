@@ -6,15 +6,9 @@
 #include "main_window.h"
 #include "map_editor.h"
 
-TMapEditorState::TMapEditorState(TGameState* BaseState)
-	: mState(BaseState)
+TMapEditorState::TMapEditorState()
 {
-	mTileMap.mTilesetTexture = GameState.mTilesetTexture;
 	UpdateView();	
-	mCursorSprite.setTextureRect({ 0,0,TilePxSize,TilePxSize });
-	mCursorSprite.setTexture(GameState.mTilesetTexture);
-	mCursorSprite.setPosition(static_cast<sf::Vector2f>(sf::Mouse::getPosition(Win)));
-	mCursorSprite.setOrigin(TilePxSize / 2, TilePxSize / 2);
 	// init menu
 	{
 		float x(0.0f), y(0.0f);
@@ -114,17 +108,21 @@ void TMapEditorState::OnExit( TMapEditorState *This )
 
 TMapEditorState::~TMapEditorState()
 {
-	// TODO: надо ли выгружать текстуры, или SFML само?..
 }
 
 void TMapEditorState::CreateMap(const TMapParams& MapParams)
 {
 	mTileMap.Reset(MapParams);
+	mTileMap.mTilesetTexture = GameState.mTilesetTexture;
 	mTileSprite.setTexture(mTileMap.mTilesetTexture);
 	mCurrentBrush = mTileMap.mParam.DefaultTileType;
-	mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
-	UpdateView();
-	
+
+	mCursorSprite.setTexture( GameState.mTilesetTexture );
+	mCursorSprite.setPosition( static_cast<sf::Vector2f>(sf::Mouse::getPosition( Win )) );
+	mCursorSprite.setOrigin( TilePxSize / 2, TilePxSize / 2 );
+	mCursorSprite.setTextureRect({ mCurrentBrush * TilePxSize, 0, TilePxSize, TilePxSize });
+
+	UpdateView();	
 }
 
 void TMapEditorState::PoolEvent(sf::Event & Event)
@@ -147,7 +145,7 @@ void TMapEditorState::OnMouseClick(int x, int y)
 	int ty = int(worldPos.y / TilePxSize);
 	tx -= mViewOffsetInTiles.x;
 	ty -= mViewOffsetInTiles.y;
-	TTileType tt = mTileMap.TypeAt(tx, ty);
+	TTileType tt = mTileMap.Get(tx, ty);
 	//MessageBoxA(0, TileName(tt), "tile under cursor", MB_OK);
 	//MessageBoxA(0, TileName(mCurrentBrush), "tile under cursor", MB_OK);
 	mTileMap.SafeSet(tx, ty, mCurrentBrush);
@@ -201,7 +199,7 @@ void TMapEditorState::Draw()
 {
 	Win.setView(mView);
 
-	// перебор тайлов влезающих в экран	
+	// перебор и отрисовка тайлов влезающих в экран	
 	for (int tx = 0; tx < mViewSizeInTiles.x; ++tx)
 	{
 		for (int ty = 0; ty < mViewSizeInTiles.y; ++ty)
@@ -209,7 +207,7 @@ void TMapEditorState::Draw()
 			int xof = tx - mViewOffsetInTiles.x;
 			int yof = ty - mViewOffsetInTiles.y;
 			
-			TTileType Type = mTileMap.TypeAt(xof, yof);
+			TTileType Type = mTileMap.Get(xof, yof);
 			if (Type == TTileType::Unknown)
 				continue;
 			sf::IntRect r( int(Type)*TilePxSize, 0, TilePxSize, TilePxSize );
@@ -219,6 +217,7 @@ void TMapEditorState::Draw()
 			Win.draw(mTileSprite);
 		}
 	}
+	// отрисовка курсора
 	sf::Vector2u ws = Win.getSize();
 	sf::View v({0,0, float(ws.x), float(ws.y)});
 	Win.setView(v);
@@ -234,7 +233,7 @@ void TMapEditorState::UpdateView()
 	// mView должен быть пропорционален экрану
 	// но в два раза крупнее (впикселах)
 	mView.reset( sf::FloatRect(0.0f, 0.0f, float(ws.x)/2, float(ws.y)/2) );
-	mView.setViewport({ 1.0f/ws.x*50 ,0.0f,1.0f,1.0f });
+	mView.setViewport( { 1.0f/ws.x*100, 0.0f, 1.0f, 1.0f } ); // левый край view сдвинуть правее на 100 чтобы меню лучше было видно
 	// записать сколько тайлов влезает во View и отрисовывать только влезающие
 	auto vs = mView.getSize();
 	mViewSizeInTiles.x = int(vs.x / TilePxSize);
@@ -246,7 +245,7 @@ void TMapEditorState::OnResize() { UpdateView(); }
 
 void TMapEditorState::RaiseDBException( TMapEditorState *This, const std::wstring &erm )
 {
-	throw TException( erm );
+	throw TException( L"TMapEditorState database error. " + erm );
 }
 
 void TMapEditorState::DoOnSave(TMapEditorState *This)
@@ -254,7 +253,6 @@ void TMapEditorState::DoOnSave(TMapEditorState *This)
 //	This.mTileMap.Save(This.mTileMap.Param.FileName);
 	SQLite::TDB db;
 	db.SetExceptionRaiser( This, &TMapEditorState::RaiseDBException );
-
 	db.Open(This->mTileMap.mParam.FileName.c_str() );
 	This->mTileMap.Save(db);
 
@@ -277,9 +275,15 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 		db.Open(FileName);
 		mTileMap.Load(db);
 		mTileMap.mParam.FileName = FileName;
+		mTileMap.mTilesetTexture = GameState.mTilesetTexture;
 		mCurrentBrush = mTileMap.mParam.DefaultTileType;
 		mTileSprite.setTexture(GameState.mTilesetTexture);
-		mCursorSprite.setTextureRect({ mCurrentBrush*TilePxSize,0,TilePxSize,TilePxSize });
+
+		mCursorSprite.setTexture( GameState.mTilesetTexture );
+		mCursorSprite.setPosition( static_cast<sf::Vector2f>(sf::Mouse::getPosition( Win )) );
+		mCursorSprite.setOrigin( TilePxSize / 2, TilePxSize / 2 );
+		mCursorSprite.setTextureRect( { mCurrentBrush * TilePxSize, 0, TilePxSize, TilePxSize } );
+
 
 		UpdateView();
 		return;
@@ -300,16 +304,14 @@ void TMapEditorState::LoadMap(const wchar_t* FileName)
 
 void TMapEditorState::ITileMapImpl::Set(int x, int y, TTileType val)
 {
-	TCoord2Int c(x, y);
 	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
 	This->mTileMap.Set(x,y, val);
 }
 
-TTileType TMapEditorState::ITileMapImpl::Get(int x, int y)
+TTileType TMapEditorState::ITileMapImpl::Get(int x, int y) const
 {
-	TCoord2Int c(x, y);
-	TMapEditorState* This = BASEHACK(TMapEditorState, miTileMap, this);
-	TTileType ret = This->mTileMap.TypeAt(x, y);
+	const TMapEditorState* This = CONSTBASEHACK(TMapEditorState, miTileMap, this);
+	TTileType ret = This->mTileMap.Get(x, y);
 	return ret;
 }
 

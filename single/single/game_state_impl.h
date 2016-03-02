@@ -15,26 +15,18 @@ TGameState::TGameState()
 	LoadBaseTileset();
 	LoadSounds();
 
-	mCurrentState = mMainMenuState = new TMainMenuState(this);
+	mCurrentState = &mMainMenuState;
 }
 TGameState::~TGameState()
 {
-	delete mMainMenuState;
-	delete mMapEditorState;
-	delete mPlayState;
-
-	if (mFontBuf) {
+	if (mFontBuf)
 		UnmapViewOfFile(mFontBuf);
-		mFontBuf = 0;
-	}
-	if (mTilesetBuf) {
-		UnmapViewOfFile(mTilesetBuf);
-		mTilesetBuf = 0;
-	}
-	for( auto s : mSounds ) {
-		UnmapViewOfFile( s.mFileView );
-	}
 
+	if (mTilesetBuf)
+		UnmapViewOfFile(mTilesetBuf);
+
+	for( auto s : mSounds )
+		UnmapViewOfFile( s.mFileView );
 }
 
 void TGameState::PoolEvent(sf::Event &Event)
@@ -47,26 +39,32 @@ void TGameState::PoolEvent(sf::Event &Event)
 
 void TGameState::GotoMapEditor_CreateMap(const TMapParams &MapParams)
 {
-	if (!mMapEditorState)
-	{
-		mMapEditorState = new TMapEditorState(this);
-	}
-	mCurrentState = mMapEditorState;
-	mMapEditorState->CreateMap(MapParams);
-	Win.setMouseCursorVisible(false);
-	mMapEditorState->UpdateView();
+	mCurrentState = &mMapEditorState;
+	mMapEditorState.CreateMap(MapParams);
+	Win.setMouseCursorVisible(false); // в редакторе свой курсор
+	mMapEditorState.UpdateView();
 }
 
 void TGameState::GotoMapEditor_LoadMap(const wchar_t* FileName)
 {
-	if (!mMapEditorState)
-	{
-		mMapEditorState = new TMapEditorState(this);
-	}
-	mCurrentState = mMapEditorState;
-	mMapEditorState->LoadMap(FileName);
-	Win.setMouseCursorVisible(false);
-	mMapEditorState->UpdateView();
+	mCurrentState = &mMapEditorState;
+	mMapEditorState.LoadMap(FileName);
+	Win.setMouseCursorVisible(false); // в редакторе свой курсор
+	mMapEditorState.UpdateView();
+}
+
+void TGameState::GotoMainMenu()
+{
+	mCurrentState = &mMainMenuState;
+	Win.setView( Win.getDefaultView() );
+	Win.setMouseCursorVisible(true);
+}
+
+void TGameState::GotoPlay_LoadMap( const wchar_t* FileName )
+{
+	mCurrentState = &mPlayState;
+	mPlayState.LoadAndPlay( FileName );
+	Win.setMouseCursorVisible(true);
 }
 
 void TGameState::LoadBaseFont()
@@ -113,18 +111,3 @@ void TGameState::LoadSounds()
 	}
 }
 
-void TGameState::GotoMainMenu()
-{
-	mCurrentState = mMainMenuState;
-	Win.setView( Win.getDefaultView() );
-}
-
-void TGameState::GotoPlay_LoadMap(const wchar_t* FileName)
-{
-	if (mPlayState == nullptr)
-	{
-		mPlayState = new TPlayState();
-	}
-	mCurrentState = mPlayState;
-	mPlayState->LoadAndPlay(FileName);
-}

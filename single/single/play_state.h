@@ -9,8 +9,8 @@
 #define AnimSpeed 0.25f
 static const int FrameCount = 4;
 
-enum TDir: ui32 { Down, Up, Rigth, Left };
-enum TCharState { 
+enum class TDir: i32 { Down, Up, Rigth, Left };
+enum class TCharState { 
 	GoingDownOut,  // начали движение вниз (ещё не покинули тайл)
 	GointDownIn,   // продолжаем двигаться вниз (вошли на новый тайл)
 	GoingUpOut,
@@ -23,15 +23,15 @@ enum TCharState {
 
 struct TCharacter
 {
-	int x = 0;	// pos in tile
+	int x = 0;	// pos in tile-map
 	int y = 0;
 	float xoff = 0.0f; // offset in tile
 	float yoff = 0.0f; 
 	float Frame = 0.0f;
 	TDir Dir = TDir::Down;
 	int AnimLine = 0;
+
 	void SetPos(int x, int y) { this->x = x; this->y = y; }
-//	void SetPos(float x, float y) { this->x = x; this->y = y; }
 	void SetDir(TDir direction) { Dir = direction; }	
 	TCharState State = TCharState::Stay;
 	void MoveFrame(float dist) {
@@ -39,8 +39,7 @@ struct TCharacter
 		if( Frame >= FrameCount) {
 			Frame -= FrameCount;
 		}
-	}
-	
+	}	
 };
 
 namespace std {
@@ -48,44 +47,44 @@ namespace std {
 	struct std::hash<sf::Vector2i> {
 		size_t operator()( const sf::Vector2i& v ) const
 		{
-			TCoord2Int c( v.x, v.y );
+			TCoord2UInt c( v.x, v.y );
 			return std::hash<unsigned int>()( c.ui );
 		}
 	};
 }
 struct TPlayState : IGameState, noncopyable
 {
-	TPlayState::TPlayState();
-	TPlayState::~TPlayState() override;
+	TPlayState();
+	~TPlayState() override;
 
-	void TPlayState::PoolEvent(sf::Event &) override;
-	void TPlayState::Draw() override;
-	void TPlayState::OnResize() override;
-	void TPlayState::Simulate() override;
+	void PoolEvent(sf::Event &) override;
+	void Draw() override;
+	void OnResize() override;
+	void Simulate() override;
 
-	void TPlayState::LoadAndPlay(const wchar_t* FileName);
-	void TPlayState::BeginPlay();
-	void TPlayState::UpdateView();
-	void TPlayState::UpdateMapTarget();
+	void LoadAndPlay(const wchar_t* FileName);
+	void BeginPlay();
+	void UpdateView();
+	void UpdateMapTarget();
 
-	void TPlayState::SimulateMoving();
-	void TPlayState::MoveAnimieFrame();
+	void SimulateMoving();
+	void MoveAnimieFrame();
 
-	void TPlayState::OnChangePlayrPos();
-	void TPlayState::OnTileReached();
+	void OnChangePlayrPos();
+	void OnTileReached();
 
-	static void TPlayState::RaiseDBException( TPlayState * This, const std::wstring& ermsg );
+	static void RaiseDBException( TPlayState * This, const std::wstring& ermsg );
 
 private:
 	
+	sf::Vector2u mPrevWindowSize = { 0,0 };
 	sf::Texture mCharacterTexture;
 	void *mCharacterTextureBuf = nullptr;
 	sf::Sprite mCharacterSprite;
 
 	// карта
 	TTileMap mTileMap;
-	sf::Sprite mTileSprite;
-	sf::RenderTexture *mMapTarget = 0; // сюда будем отрисовывать тайлы карты
+	sf::RenderTexture *mMapTargetTexture = 0; // сюда будем отрисовывать тайлы карты (типа кеширующая текстура)
 	sf::Sprite mTargetSprite;
 	bool mInvalidMapTarget = true;
 

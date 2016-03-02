@@ -22,7 +22,7 @@ struct TMenuItem
 	template <class T>
 	inline TMenuItem& OnKey(sf::Keyboard::Key Key, T*, void(*callback_ptr)(T*));
 	
-	inline bool TMenuItem::ProcessKey(sf::Keyboard::Key Key);
+	inline bool ProcessKey(sf::Keyboard::Key Key);
 };
 
 struct TMenu
@@ -30,12 +30,9 @@ struct TMenu
 	inline friend TMenu& operator+= (TMenu& m, TMenuItem& MenuItem) { m.items.push_back(MenuItem);	return m; }
 	std::vector<TMenuItem> items;
 
-	inline void TMenu::ProcessKey(sf::Keyboard::Key Key);
-	inline void TMenu::Draw(sf::RenderTarget& Target);
+	inline void ProcessKey(sf::Keyboard::Key Key);
+	inline void Draw(sf::RenderTarget& Target);
 };
-
-
-
 
 
 //----------------------------
@@ -45,21 +42,19 @@ struct TMapParams;
 
 struct TMainMenuState : IGameState, noncopyable
 {
-	TMainMenuState::TMainMenuState(TGameState* pGameState);
-	TMainMenuState::~TMainMenuState() override;
+	inline TMainMenuState();
+	~TMainMenuState() override;
 
-	void TMainMenuState::PoolEvent(sf::Event &) override;
-	void TMainMenuState::Draw() override;
-	void TMainMenuState::OnResize() override;
-	void TMainMenuState::Simulate() override {}
-	
+	void PoolEvent(sf::Event &) override;
+	void Draw() override;
+	void OnResize() override;
+	void Simulate() override {}
+
+	static void OnGenMap(TMainMenuState *This);
+	static void OnLoadMap(TMainMenuState *This);
+	static void OnLoadAndPlay(TMainMenuState *This);
+
 	enum { enCaption, enGenNewMap, enLoadMap,		enCount };
 	TMenu mMenu;
-
-	static void TMainMenuState::OnGenMap(TMainMenuState *This);
-	static void TMainMenuState::OnLoadMap(TMainMenuState *This);
-	static void TMainMenuState::OnLoadAndPlay(TMainMenuState *This);
-private:
-	TGameState *mState = nullptr;
 };
 

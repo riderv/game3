@@ -6,24 +6,18 @@
 
 TPlayState::TPlayState()
 {
-	mTileMap.mTilesetTexture = GameState.mTilesetTexture;
-
 	std::wstring ffn = GetExePatch() + L"/res/sil_anim.png";
 	auto res = MapFile( ffn );
 	if( !mCharacterTexture.loadFromMemory( res.first, res.second ) )
 		throw TException( "Loading /res/sil_anim.png falied" );
-
 	mCharacterSprite.setTexture( mCharacterTexture );
-	mCandySprite.setTexture( GameState.mTilesetTexture );
-	mCandySprite.setTextureRect(sf::IntRect(0, TilePxSize, TilePxSize, TilePxSize));
-
-
 }
 
 TPlayState::~TPlayState()
 {
 	if( mCharacterTextureBuf )
 		UnmapViewOfFile( mCharacterTextureBuf ), mCharacterTextureBuf = 0;
+	delete mMapTargetTexture;
 	
 }
 
@@ -60,6 +54,15 @@ void TPlayState::Draw()
 		UpdateMapTarget();
 
 	
+	//sf::Sprite targSpr( mMapTargetTexture->getTexture() );
+	//sf::IntRect tsz(0,0, mMapTargetTexture->getSize().x, mMapTargetTexture->getSize().y);
+	/*targSpr.setTextureRect(
+		{
+			0,			-tsz.height,
+			tsz.width,	0
+		}
+	);*/
+	//Win.draw( targSpr );
 	Win.draw( mTargetSprite );
 
 	mCharacterSprite.setTextureRect(sf::IntRect(
@@ -140,25 +143,25 @@ void TPlayState::SimulateMoving()
 		//////////////////////////
 		case TCharState::Stay:
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-				if( mTileMap.TypeAt(mCharacter.x + 1, mCharacter.y) == TTileType::Ground )
+				if( mTileMap.Get(mCharacter.x + 1, mCharacter.y) == TTileType::Ground )
 					mCharacter.State = TCharState::GoingRigthOut;
 				mCharacter.Dir = TDir::Rigth;
 				return;
 			}else
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-				if (mTileMap.TypeAt( mCharacter.x - 1, mCharacter.y ) == TTileType::Ground)
+				if (mTileMap.Get( mCharacter.x - 1, mCharacter.y ) == TTileType::Ground)
 					mCharacter.State = TCharState::GoingLeftOut;
 				mCharacter.Dir = TDir::Left;
 				return;
 			}else
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-				if (mTileMap.TypeAt( mCharacter.x, mCharacter.y + 1 ) == TTileType::Ground)
+				if (mTileMap.Get( mCharacter.x, mCharacter.y + 1 ) == TTileType::Ground)
 					mCharacter.State = TCharState::GoingDownOut;
 				mCharacter.Dir = TDir::Down;
 				return;
 			}else
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-				if (mTileMap.TypeAt( mCharacter.x, mCharacter.y - 1 ) == TTileType::Ground)
+				if (mTileMap.Get( mCharacter.x, mCharacter.y - 1 ) == TTileType::Ground)
 					mCharacter.State = TCharState::GoingUpOut;
 				mCharacter.Dir = TDir::Up;
 				return;
@@ -180,7 +183,7 @@ void TPlayState::SimulateMoving()
 			mCharacter.xoff += DeltaDist;
 			if (mCharacter.xoff >= 0.0f) {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)
-				&& mTileMap.TypeAt(mCharacter.x+1, mCharacter.y) == TTileType::Ground) {
+				&& mTileMap.Get(mCharacter.x+1, mCharacter.y) == TTileType::Ground) {
 					mCharacter.State = TCharState::GoingRigthOut;
 					OnTileReached();
 					return;
@@ -207,7 +210,7 @@ void TPlayState::SimulateMoving()
 			mCharacter.xoff -= DeltaDist;
 			if (mCharacter.xoff <= 0.0f) {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)
-				&& mTileMap.TypeAt( mCharacter.x-1, mCharacter.y ) == TTileType::Ground) {
+				&& mTileMap.Get( mCharacter.x-1, mCharacter.y ) == TTileType::Ground) {
 					mCharacter.State = TCharState::GoingLeftOut;
 					OnTileReached();
 					return;
@@ -234,7 +237,7 @@ void TPlayState::SimulateMoving()
 			mCharacter.yoff -= DeltaDist;
 			if (mCharacter.yoff <= 0.0f) {
 				if(sf::Keyboard::isKeyPressed(sf::Keyboard::Up)
-				&& mTileMap.TypeAt( mCharacter.x, mCharacter.y-1 ) == TTileType::Ground) {
+				&& mTileMap.Get( mCharacter.x, mCharacter.y-1 ) == TTileType::Ground) {
 					mCharacter.State = TCharState::GoingUpOut;
 					OnTileReached();
 					return;
@@ -261,7 +264,7 @@ void TPlayState::SimulateMoving()
 			mCharacter.yoff += DeltaDist;
 			if (mCharacter.yoff >= 0.0f) {
 				if(sf::Keyboard::isKeyPressed(sf::Keyboard::Down)
-				&& mTileMap.TypeAt( mCharacter.x, mCharacter.y+1 ) == TTileType::Ground) {
+				&& mTileMap.Get( mCharacter.x, mCharacter.y+1 ) == TTileType::Ground) {
 					mCharacter.State = TCharState::GoingDownOut;
 					OnTileReached();
 					return;
@@ -288,11 +291,11 @@ void TPlayState::MoveAnimieFrame()
 		}
 		else {
 			mCharacter.Frame = 0.0f;
-			mCharacter.AnimLine = mCharacter.Dir + 1;
+			mCharacter.AnimLine = int(mCharacter.Dir) + 1;
 		}
 	}
 	else {
-		mCharacter.AnimLine = mCharacter.Dir + 1;
+		mCharacter.AnimLine = int(mCharacter.Dir) + 1;
 		mCharacter.MoveFrame( DeltaDist * AnimSpeed );
 	}
 }
@@ -304,48 +307,54 @@ void TPlayState::Simulate()
 void TPlayState::UpdateView() // TODO: не нравитс€ копипаст из редактора. Ќужно как то обобщить.
 {
 	sf::Vector2u ws = Win.getSize();
-
+	if( mPrevWindowSize == ws )
+		return;
 	// mView должен быть пропорционален экрану
 	// но в два раза крупнее (впикселах).
-	// 50 ѕикселов отступ вправо дл€ меню.
+	
 	mView.reset(sf::FloatRect(0.0f, 0.0f, float(ws.x) / 2, float(ws.y) / 2));
 	//mView.setViewport({ 1.0f / ws.x * 50, 0.0f, 1.0f, 1.0f });
 	//mView.setViewport( { 0.0f, 0.0f, 1.0f, 1.0f } );
 	// записать сколько тайлов влезает во View и отрисовывать только влезающие
 	auto vs = mView.getSize();
-	mViewSizeInTiles.x = int(vs.x / TilePxSize);
-	mViewSizeInTiles.y = int(vs.y / TilePxSize);
+	mViewSizeInTiles.x = int(roundf(vs.x / float(TilePxSize)));
+	mViewSizeInTiles.y = int(roundf(vs.y / float(TilePxSize)));
 	
-	if( mMapTarget )
-		delete mMapTarget;
-	auto Targ = new sf::RenderTexture();
-	assert( Targ->create( int(vs.x), int(vs.y) ));
-	mTargetSprite.setTexture( Targ->getTexture() );
-	mTargetSprite.setTextureRect( { 0,0, int(vs.x), int(vs.y) } );
-	mTargetSprite.setOrigin( 0.0f, 0.0f );
-	mTargetSprite.setPosition( 0.0f, 0.0f );
-	mMapTarget = Targ;
-
-
-	UpdateMapTarget();
+	mInvalidMapTarget = true;
 }
 void TPlayState::UpdateMapTarget()
 {
-	//mMapTarget->setView( mView );
-	mMapTarget->clear();
+	//auto vs = mView.getSize();
+	delete mMapTargetTexture;
+	mMapTargetTexture = new sf::RenderTexture();
 
-	//sf::RectangleShape top( { (float)mMapTarget->getSize().x, 1.0f } );
+	//mTargetSprite = new sf::Sprite();
+	
+	if( ! mMapTargetTexture->create( mViewSizeInTiles.x*TilePxSize, mViewSizeInTiles.y*TilePxSize ) )
+	{
+		throw TException( L"mMapTargetTexture->create failed. Size " + IntToWStr( mViewSizeInTiles.x*TilePxSize ) + L" " + IntToWStr( mViewSizeInTiles.y*TilePxSize ) );
+	}
+	//mTargetSprite->setTexture( mMapTargetTexture->getTexture() );
+	//mTargetSprite->setTextureRect( { 0,0, int(vs.x), int(vs.y) } );
+	//mTargetSprite->setOrigin( 0.0f, 0.0f );
+	//mTargetSprite->setPosition( 0.0f, 0.0f );
+
+
+	//mMapTargetTexture->setView( mView );
+	mMapTargetTexture->clear(sf::Color::Black);
+
+	//sf::RectangleShape top( { (float)mMapTargetTexture->getSize().x, 1.0f } );
 	//top.setFillColor( sf::Color::Red );
-	//mMapTarget->draw( top );
+	//mMapTargetTexture->draw( top );
 
-	//sf::RectangleShape bottom( { (float)mMapTarget->getSize().x, 1.0f } );
-	//bottom.setPosition( 0.0f, float( mMapTarget->getSize().y ) - 1.0f );
-	//mMapTarget->draw( bottom );
+	//sf::RectangleShape bottom( { (float)mMapTargetTexture->getSize().x, 1.0f } );
+	//bottom.setPosition( 0.0f, float( mMapTargetTexture->getSize().y ) - 1.0f );
+	//mMapTargetTexture->draw( bottom );
 	//// перебор тайлов влезающих в экран	
 
 	//int tx = 1;
 	//int ty = 1;
-	//TTileType Type = mTileMap.TypeAt( tx, ty );
+	//TTileType Type = mTileMap.Get( tx, ty );
 	//if( Type == TTileType::Unknown )
 	//{
 	//	__debugbreak(); return;
@@ -354,13 +363,14 @@ void TPlayState::UpdateMapTarget()
 	//mTileSprite.setTextureRect( r );
 	//sf::Vector2f pos_in_pixels( float( tx * TilePxSize ), float( ty * TilePxSize ) );
 	////pos_in_pixels.y *= -1;
-	//pos_in_pixels.y = mMapTarget->getSize().y - pos_in_pixels.y - TilePxSize;
+	//pos_in_pixels.y = mMapTargetTexture->getSize().y - pos_in_pixels.y - TilePxSize;
 
 	//mTileSprite.setPosition( pos_in_pixels );
-	//mMapTarget->draw( mTileSprite );
+	//mMapTargetTexture->draw( mTileSprite );
 	//mInvalidMapTarget = false;
 	//return;
-
+	//sprites.clear();
+	//sprites.reserve( mViewSizeInTiles.x * mViewSizeInTiles.y );
 	for( int tx = 0; tx < mViewSizeInTiles.x; ++tx )
 	{
 		for( int ty = 0; ty < mViewSizeInTiles.y; ++ty )
@@ -368,30 +378,49 @@ void TPlayState::UpdateMapTarget()
 			int xof = tx + mViewOffsetInTiles.x;
 			int yof = ty + mViewOffsetInTiles.y;
 
-			TTileType Type = mTileMap.TypeAt( xof, yof );
+			TTileType Type = mTileMap.Get( xof, yof );
 			if( Type == TTileType::Unknown )
 				continue;
+			
 			sf::IntRect r( int( Type )*TilePxSize, 0, TilePxSize, TilePxSize );
-			mTileSprite.setTextureRect( r );
+			//sprites.push_back( sf::Sprite() );
+			//sf::Sprite & spr = *sprites.rbegin();
+			sf::Sprite spr( GameState.mTilesetTexture );
+			spr.setTexture( GameState.mTilesetTexture );
+			spr.setTextureRect( r );
+			
 			sf::Vector2f pos_in_pixels( float( tx * TilePxSize ), float( ty * TilePxSize ) );
-			pos_in_pixels.y = mMapTarget->getSize().y - pos_in_pixels.y - TilePxSize;
-			mTileSprite.setPosition( pos_in_pixels );
-			mMapTarget->draw( mTileSprite );
+			//pos_in_pixels.y = mMapTargetTexture->getSize().y - pos_in_pixels.y - TilePxSize;
+			/////sf::Vector2f pos_in_pixels( float( tx * TilePxSize ), float( ty * TilePxSize ) );
+			spr.setPosition( pos_in_pixels );
+			
+			mMapTargetTexture->draw( spr );
 
 			auto res = mCandys.find( { xof,yof } );
 			if( res != mCandys.end() )
 			{
 				mCandySprite.setPosition( pos_in_pixels );
-				mMapTarget->draw( mCandySprite );
+				mMapTargetTexture->draw( mCandySprite );
 			}
 		}
 	}
+	mMapTargetTexture->display();
+	mTargetSprite.setTexture( mMapTargetTexture->getTexture() );
+	mTargetSprite.setTextureRect( { 0,0, int( mMapTargetTexture->getSize().x ), int( mMapTargetTexture->getSize().y ) } );
+	//delete mTargetSprite;
+	//mTargetSprite = new sf::Sprite( mMapTargetTexture->getTexture() );
+	//mTargetSprite->setTexture( mMapTargetTexture->getTexture() );
+/*
+	mTargetSprite->setTextureRect( { 0,0, int( vs.x ), int( vs.y ) } );
+	mTargetSprite->setOrigin( 0.0f, 0.0f );
+	mTargetSprite->setPosition( 0.0f, 0.0f );
+	*/
 	mInvalidMapTarget = false;
 }
 
 void TPlayState::RaiseDBException( TPlayState * This, const std::wstring& ermsg )
 {
-	throw TException( ermsg );
+	throw TException( L"TPlayState database error: " + ermsg );
 }
 
 void TPlayState::LoadAndPlay(const wchar_t* FileName)
@@ -399,14 +428,15 @@ void TPlayState::LoadAndPlay(const wchar_t* FileName)
 	try {
 		SQLite::TDB db;
 		db.SetExceptionRaiser( this, &TPlayState::RaiseDBException );
+
 		db.Open(FileName);
 		mTileMap.Load(db);
 		mTileMap.mParam.FileName = FileName;
 		mTileMap.mTilesetTexture = GameState.mTilesetTexture;
-		mTileSprite.setTexture(GameState.mTilesetTexture);
 		mCandySprite.setTexture( GameState.mTilesetTexture );
-		BeginPlay();
+		mCandySprite.setTextureRect(sf::IntRect(0, TilePxSize, TilePxSize, TilePxSize));
 
+		BeginPlay();
 		UpdateView();
 		return;
 	}
@@ -422,20 +452,21 @@ void TPlayState::LoadAndPlay(const wchar_t* FileName)
 void TPlayState::BeginPlay()
 {
 	// ищем куда поставить персонажа
+	mInvalidMapTarget = true;
 	int x = 0;	int y = 0;
 	bool found = false;
 	for(;;)
 	{
 		for( int xx = x; xx >= 0; xx-- ) {
-			if( mTileMap.TypeAt( xx, y ) == TTileType::Ground ) {
+			if( mTileMap.Get( xx, y ) == TTileType::Ground ) {
 				x = xx;
-				goto FoundLabel; // ќќќќ  акой ужас! GOTO ай-€й-€й-€й ))) // 				
+				goto TileFound; // ќќќќ  акой ужас! GOTO ай-€й-€й-€й ))) // 				
 			}
 		}
 		for( int yy = y-1; yy >= 0; yy-- ) {
-			if( mTileMap.TypeAt( x, yy ) == TTileType::Ground ) {
+			if( mTileMap.Get( x, yy ) == TTileType::Ground ) {
 				y = yy;
-				goto FoundLabel;
+				goto TileFound;
 			}
 		}
 
@@ -449,7 +480,7 @@ void TPlayState::BeginPlay()
 			break;
 	}
 	throw TException( "TPlayState::BeginPlay: ground tile for character not found.");
-FoundLabel:
+TileFound:
 	mCharacter.SetPos(x, y);
 	mCharacter.xoff = 0.0f;
 	mCharacter.yoff = 0.0f;
@@ -467,7 +498,7 @@ FoundLabel:
 		do {
 			CandyPos.x = rand() % mTileMap.mParam.w;
 			CandyPos.y = rand() % mTileMap.mParam.h;
-		} while( mTileMap.TypeAt( CandyPos.x, CandyPos.y ) != TTileType::Ground );
+		} while( mTileMap.Get( CandyPos.x, CandyPos.y ) != TTileType::Ground );
 		mCandys.insert( CandyPos );
 	}
 	mLevelComplited = false;

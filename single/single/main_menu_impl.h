@@ -56,26 +56,25 @@ TMainMenuState::~TMainMenuState()
 }
 
 
-TMainMenuState::TMainMenuState(TGameState* pGameState)
-	: mState(pGameState)
+inline TMainMenuState::TMainMenuState()
 {
 	float x(100.0f), y(100.0f);
 
-	mMenu += TMenuItem().Text(L"Бродилка")
+	mMenu += TMenuItem().Text(L"Истребитель конфет")
 		.Font(GameState.mFont).Pos(x, y).CharSize(30);
 	y += 60;
 
-	mMenu += TMenuItem().Text("1) Generate and edit map...")
+	mMenu += TMenuItem().Text(L"1) Создать карту")
 		.Font(GameState.mFont).Pos(x, y).CharSize(20)
 		.OnKey(sf::Keyboard::Num1, this, &TMainMenuState::OnGenMap);
 	y += 30;
 
-	mMenu += TMenuItem().Text("2) Load map and edit...")
+	mMenu += TMenuItem().Text(L"2) Загрузить карту и редактировать")
 		.Font(GameState.mFont).Pos(x, y).CharSize(20)
 		.OnKey(sf::Keyboard::Num2, this, &TMainMenuState::OnLoadMap);
 	
 	y += 30;
-	mMenu += TMenuItem().Text("3) Load map and play.")
+	mMenu += TMenuItem().Text(L"3) Загрузить карту и играть")
 		.Font(GameState.mFont).Pos(x, y).CharSize(20)
 		.OnKey(sf::Keyboard::Num3, this, &TMainMenuState::OnLoadAndPlay);
 
@@ -104,11 +103,8 @@ static int __stdcall BrowseNotify(HWND hWnd, UINT iMessage, LPARAM wParam, LPARA
 {
 	if (iMessage == BFFM_INITIALIZED)
 	{
-		// Шешил в файлик сохранять предыдущие настройки, 
-		// в частности куда последний раз создавали карту,
-		// и попал на несколько часов: 
-		// не знал, что работать с текстовыми юникод-файлами
-		// в винде такая голованя боль.
+		// Решил в файлик сохранять предыдущие настройки, 
+		// в частности куда последний раз создавали карту.
 		// TODO: ПЕРЕДЕЛАТЬ НА БД ИЛИ БИНАРНЫЙ ФАЙЛ или xml
 		std::wstring fn = GetExePatch() + L"\\last_map_dir";
 #pragma warning(disable:4996)
@@ -184,18 +180,24 @@ INT_PTR __stdcall DialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void TMainMenuState::OnGenMap(TMainMenuState *This)
 {
-	HWND hDlg = NULL;
+	struct TDialog {
+		HWND Handle;
+		~TDialog() { if( Handle ) DestroyWindow( Handle ); }
+	} Dialog{ NULL };
+
 	try {
 		// Спросим у юзера каким размеров карту ему хочется.
+		// (создание простенького диалога из ресурсов).
 		MSG msg;
 		BOOL ret;
 		LRESULT lres;
 		// Диалог -- IDD_NEW_MAP_DIALOG //
-		hDlg = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
-		assert(NULL != hDlg);
+		Dialog.Handle = CreateDialogParam(gHinstance, MAKEINTRESOURCE(IDD_NEW_MAP_DIALOG), Win.getSystemHandle(), DialogProc, 0);
+		CHECK_TRUE(NULL != Dialog.Handle, L"CreateDialogParam failed.");
 
-		HWND hWndComboBox = GetDlgItem(hDlg, IDC_COMBO_TILES);
-		assert(NULL != hWndComboBox);
+		// Заполнить комбобокс названием тайлов.
+		HWND hWndComboBox = GetDlgItem(Dialog.Handle, IDC_COMBO_TILES);
+		CHECK_TRUE(NULL != hWndComboBox, L"GetDlgItem(Dialog.Handle, IDC_COMBO_TILES) failed, ");
 
 		for (int i = 0; i < int(TTileType::Count); ++i)
 		{
@@ -205,77 +207,78 @@ void TMainMenuState::OnGenMap(TMainMenuState *This)
 		lres = SendMessage(hWndComboBox, CB_SETCURSEL, /*index=*/0, 0);
 
 		std::wstring ExePath = GetExePatch();
-		SetDlgItemTextW(hDlg, IDC_STATIC_FullName, const_cast<LPCWSTR>(ExePath.c_str()));
+		SetDlgItemTextW(Dialog.Handle, IDC_STATIC_FullName, const_cast<LPCWSTR>(ExePath.c_str()));
 
 
-		ShowWindow(hDlg, SW_SHOW);
+		ShowWindow( Dialog.Handle, SW_SHOW );
+		UpdateWindow( Dialog.Handle );
 		while ((ret = GetMessage(&msg, 0, 0, 0)) != 0)
 		{
-			if (!IsDialogMessage(hDlg, &msg)) {
+			if (!IsDialogMessage(Dialog.Handle, &msg)) {
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
 		}
-		if (DialogResult != IDOK) {
-			DestroyWindow(hDlg);
-			hDlg = NULL;
+		if (DialogResult != IDOK)
 			return;
-		}
-		// Считаем из диалога пользовательский ввод.	
+
+		// Читаем из диалога пользовательский ввод.	
 		const int Dir_Len = 1024 * 4;
 		wchar_t FileName[Dir_Len] = { 0 };
 		wchar_t Dir[Dir_Len] = { 0 };
 		TMapParams Param;
-		assert(0 != GetDlgItemTextW(hDlg, IDC_EDIT_FILENAME,
-			FileName,
-			Dir_Len));
-		assert(0 != GetDlgItemTextW(hDlg, IDC_STATIC_FullName,
-			Dir,
-			Dir_Len));
-		assert(0 < wcslen(FileName));
-		assert(0 < wcslen(Dir));
+
+		CHECK_TRUE(0 != GetDlgItemTextW(Dialog.Handle,IDC_EDIT_FILENAME,FileName,Dir_Len),
+			L"GetDlgItemTextW(Dialog.Handle,IDC_EDIT_FILENAME,....) failed.");
+
+		CHECK_TRUE(0 != GetDlgItemTextW(Dialog.Handle, IDC_STATIC_FullName,Dir,Dir_Len),
+			L"GetDlgItemTextW( Dialog.Handle, IDC_STATIC_FullName,....");
+
+		CHECK_TRUE(0 < wcslen(FileName), L"Имя файла не задано.");
+		CHECK_TRUE(0 < wcslen(Dir), L"Путь к файлу не указан.");
+		
 		Param.FileName = Dir;
+		// Add traling b-slash if needed.
 		if (!(Dir[wcslen(Dir) - 1] == L'\\' || Dir[wcslen(Dir) - 1] == L'/'))
 			Param.FileName += L'\\';
 		Param.FileName += FileName;
+		
 		BOOL ok;
-		Param.w = GetDlgItemInt(hDlg, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
-		assert(ok == TRUE);
-		assert(Param.w > 0);
-		assert(Param.w <= Max<ui16>());
-		Param.h = GetDlgItemInt(hDlg, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
-		assert(ok == TRUE);
-		assert(Param.h > 0);
-		assert(Param.h <= Max<ui16>());
-		Param.DefaultTileType = TileTypeFromInt((int)SendMessage(hWndComboBox, CB_GETCURSEL, 0, 0));
+		Param.w = GetDlgItemInt( Dialog.Handle, IDC_EDIT_WIDTH, &ok, /*signed =*/FALSE);
+		CHECK_TRUE(ok == TRUE, L"GetDlgItemInt( Dialog.Handle, IDC_EDIT_WIDTH....) failed.");
+		CHECK_TRUE(Param.w > 0, L"Ширина карты должна быть больше нуля");
+		CHECK_TRUE(Param.w <= Max<ui16>(), L"Ширина карты должна быть <= 65535");
+		
+		Param.h = GetDlgItemInt( Dialog.Handle, IDC_EDIT_HEIGHT, &ok, /*signed =*/FALSE);
+		CHECK_TRUE(ok == TRUE, L"GetDlgItemInt( Dialog.Handle, IDC_EDIT_HEIGHT....) failed.");
+		CHECK_TRUE(Param.h > 0, L"Высота карты должна быть больше нуля.");
+		CHECK_TRUE(Param.h <= Max<ui16>(), L"Высота карты должна быть <= 65535");
 
-		DestroyWindow(hDlg);
-		hDlg = NULL;
+		int DefTileType = static_cast<int>(  SendMessage( hWndComboBox, CB_GETCURSEL, 0, 0 )  );
+		CHECK_TRUE( DefTileType >= 0 &&
+					DefTileType <= TTileType::Count,
+					L"Неверный базовый тип тайла (default tile type)."
+					);
+		Param.DefaultTileType = TileTypeFromInt( DefTileType );
 
-
-		//Param.h = 16;
-		//Param.w = 16;
-		//Param.DefaultTileType = TileType::Graund;
-
-
+		GameState.GotoMapEditor_CreateMap(Param);
+	
+		// Зальём водой по краям
 		for (int x = 0; x < Param.w; ++x)
 		{
-			This->mState->mMapEditorState->TileMap().Set(x, 0, TTileType::Water);
-			This->mState->mMapEditorState->TileMap().Set(x, Param.h - 1, TTileType::Water);
+			GameState.mMapEditorState.TileMap().Set(x, 0, TTileType::Water);
+			GameState.mMapEditorState.TileMap().Set(x, Param.h - 1, TTileType::Water);
 		}
 		for (int y = 1; y < (Param.h - 1); ++y)
 		{
-			This->mState->mMapEditorState->TileMap().Set(0, y, TTileType::Water);
-			This->mState->mMapEditorState->TileMap().Set(Param.w - 1, y, TTileType::Water);
+			GameState.mMapEditorState.TileMap().Set(0, y, TTileType::Water);
+			GameState.mMapEditorState.TileMap().Set(Param.w - 1, y, TTileType::Water);
 		}
-		//This->mState->mMapEditorState->TileMap().Set(3, 3, TTileType::Water);
-		This->mState->GotoMapEditor_CreateMap(Param);
+		//This->mState->mMapEditorState->TileMap().Set(3, 3, TTileType::Water);// для отладки
 		return;
 	}
 	catch (const TException &e)
 	{
-		if(hDlg)
-			DestroyWindow(hDlg);
 		Log( e.msg );
 		MessageBoxW(0, e.msg.c_str(), L"ERROR", MB_ICONEXCLAMATION);
 	}
@@ -291,6 +294,7 @@ void TMainMenuState::OnGenMap(TMainMenuState *This)
 void TMainMenuState::OnLoadMap( TMainMenuState *This )
 {
 	try {
+		// Запросить имя файла
 		static const int FileName_BufSize = 4 * 1024;
 		wchar_t FileName[FileName_BufSize] = { 0 };
 		wchar_t FilePath[FileName_BufSize] = { 0 };
@@ -298,6 +302,8 @@ void TMainMenuState::OnLoadMap( TMainMenuState *This )
 		if (int er = GetLastError())
 		{
 			ShowLastErr(er);
+			Log( L"TMainMenuState::OnLoadMap, GetModuleFileNameW failed. " + LastErrStr( er ) );
+			GameState.GotoMainMenu();
 			return;
 		}
 		// Эх, где же ты удобная VCL
@@ -316,6 +322,7 @@ void TMainMenuState::OnLoadMap( TMainMenuState *This )
 			Win.setTitle("Loading map...");
 			Win.setTitle(w.c_str());
 			GameState.GotoMapEditor_LoadMap(ofn.lpstrFile);
+			return;
 		}
 	}
 	catch (const TException &e)
@@ -328,6 +335,7 @@ void TMainMenuState::OnLoadMap( TMainMenuState *This )
 		MessageBoxA(0, "TMainMenuState::OnLoadMap", "Unknown exception", MB_ICONERROR);
 		Log( L"TMainMenuState::OnLoadMap catch unknown exception" );
 	}
+	GameState.GotoMainMenu();
 }
 
 void TMainMenuState::OnLoadAndPlay( TMainMenuState *This )
@@ -353,13 +361,14 @@ void TMainMenuState::OnLoadAndPlay( TMainMenuState *This )
 
 		if (GetOpenFileNameW(&ofn))
 		{
-			std::wstring w(1024, L'\0');
-			GetWindowTextW(Win.getSystemHandle(), const_cast<LPWSTR>(w.c_str()), static_cast<int>(w.size()));
+			const int t_len = 1024;
+			wchar_t prev_title[t_len] = { 0 };
+			GetWindowTextW(Win.getSystemHandle(), prev_title, t_len);
 			Win.setTitle("Loading map for playing...");
 			GameState.GotoPlay_LoadMap(ofn.lpstrFile);
-			Win.setTitle(w.c_str());
-		}
-		return;
+			Win.setTitle( prev_title );
+			return;
+		}		
 	}
 	catch (const TException& E)
 	{
